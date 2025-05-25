@@ -1,7 +1,7 @@
 package com.campus.im.controller;
 
 import com.campus.im.entity.Message;
-import com.campus.im.entity.Result;
+import com.campus.im.common.Result;
 import com.campus.im.service.MessageSyncService;
 import com.campus.im.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;

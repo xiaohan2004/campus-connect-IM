@@ -2,15 +2,12 @@ package com.campus.im.controller;
 
 import com.campus.im.common.constant.JwtConstant;
 import com.campus.im.entity.Message;
-import com.campus.im.entity.Result;
-import com.campus.im.entity.ResultCode;
 import com.campus.im.service.MessageService;
 import com.campus.im.service.UserService;
 import com.campus.im.service.MentionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;

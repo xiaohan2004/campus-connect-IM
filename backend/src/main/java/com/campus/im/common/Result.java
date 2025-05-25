@@ -1,4 +1,6 @@
-package com.campus.im.entity;
+package com.campus.im.common;
+
+import com.campus.im.common.enumeration.ResultCode;
 
 /**
  * 统一响应结果封装类

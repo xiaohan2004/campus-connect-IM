@@ -1,8 +1,8 @@
 package com.campus.im.controller;
 
 import com.campus.im.entity.Friendship;
-import com.campus.im.entity.Result;
-import com.campus.im.entity.ResultCode;
+import com.campus.im.common.Result;
+import com.campus.im.common.enumeration.ResultCode;
 import com.campus.im.entity.User;
 import com.campus.im.service.FriendshipService;
 import com.campus.im.service.UserService;

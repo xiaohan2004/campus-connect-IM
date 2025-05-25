@@ -1,8 +1,8 @@
 package com.campus.im.controller;
 
 import com.campus.im.entity.Conversation;
-import com.campus.im.entity.Result;
-import com.campus.im.entity.ResultCode;
+import com.campus.im.common.Result;
+import com.campus.im.common.enumeration.ResultCode;
 import com.campus.im.service.ConversationService;
 import com.campus.im.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;

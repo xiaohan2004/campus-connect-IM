@@ -1,4 +1,4 @@
-package com.campus.im.entity;
+package com.campus.im.common.enumeration;
 
 /**
  * 结果状态码

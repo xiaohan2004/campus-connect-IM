@@ -1,8 +1,8 @@
 package com.campus.im.util;
 
 import com.campus.im.common.constant.JwtConstant;
-import com.campus.im.entity.Result;
-import com.campus.im.entity.ResultCode;
+import com.campus.im.common.Result;
+import com.campus.im.common.enumeration.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
 

@@ -1,6 +1,6 @@
 package com.campus.im.exception;
 
-import com.campus.im.entity.Result;
+import com.campus.im.common.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.converter.HttpMessageNotReadableException;

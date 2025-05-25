@@ -1,8 +1,8 @@
 package com.campus.im.interceptor;
 
 import com.campus.im.common.constant.JwtConstant;
-import com.campus.im.entity.Result;
-import com.campus.im.entity.ResultCode;
+import com.campus.im.common.Result;
+import com.campus.im.common.enumeration.ResultCode;
 import com.campus.im.entity.User;
 import com.campus.im.service.UserService;
 import com.campus.im.util.JwtUtil;
