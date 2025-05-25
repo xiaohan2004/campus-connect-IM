@@ -150,4 +150,21 @@ public interface MessageMapper {
      * @return 未读消息数
      */
     int countUnreadMessages(@Param("userPhone") String userPhone);
+    
+    /**
+     * 查询用户的离线消息
+     *
+     * @param userPhone 用户手机号
+     * @return 离线消息列表
+     */
+    List<Message> selectOfflineMessages(@Param("userPhone") String userPhone);
+    
+    /**
+     * 确认接收离线消息
+     *
+     * @param userPhone 用户手机号
+     * @param messageIds 消息ID列表
+     * @return 影响行数
+     */
+    int confirmOfflineMessages(@Param("userPhone") String userPhone, @Param("messageIds") List<Long> messageIds);
 } 

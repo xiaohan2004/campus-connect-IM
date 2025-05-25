@@ -116,4 +116,69 @@
         WHERE id = #{id}
     </update>
     
+    <select id="selectPrivateMessagesByPhone" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message m
+        JOIN user u1 ON m.sender_id = u1.id
+        JOIN user u2 ON m.receiver_id = u2.id
+        WHERE m.conversation_type = 0
+        AND (
+            (u1.phone = #{userPhone} AND u2.phone = #{otherPhone})
+            OR
+            (u1.phone = #{otherPhone} AND u2.phone = #{userPhone})
+        )
+        AND m.status = 0
+        ORDER BY m.send_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <select id="selectGroupMessagesByOffset" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE conversation_type = 1
+        AND receiver_id = #{groupId}
+        AND status = 0
+        ORDER BY send_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <update id="updateReadStatus">
+        UPDATE message
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+    
+    <select id="countUnreadMessages" resultType="int">
+        SELECT COUNT(*)
+        FROM message m
+        JOIN user u ON m.receiver_id = u.id
+        WHERE u.phone = #{userPhone}
+        AND m.status = 0
+        AND m.is_recalled = 0
+    </select>
+    
+    <select id="selectOfflineMessages" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message m
+        JOIN user u ON m.receiver_id = u.id
+        WHERE u.phone = #{userPhone}
+        AND m.status = 0
+        AND m.is_recalled = 0
+        ORDER BY m.send_time DESC
+        LIMIT 100
+    </select>
+    
+    <update id="confirmOfflineMessages">
+        UPDATE message
+        SET status = 1
+        WHERE id IN
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+        AND receiver_id = (SELECT id FROM user WHERE phone = #{userPhone})
+    </update>
+    
 </mapper> 

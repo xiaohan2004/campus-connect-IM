@@ -198,6 +198,40 @@ public class MessageController {
     }
 
     /**
+     * 获取离线消息
+     *
+     * @param request HTTP请求
+     * @return 离线消息列表
+     */
+    @GetMapping("/offline")
+    public Result getOfflineMessages(HttpServletRequest request) {
+        String userPhone = AuthUtil.getCurrentUserPhone(request);
+        List<Message> messages = messageService.getOfflineMessages(userPhone);
+        return Result.success(messages);
+    }
+
+    /**
+     * 确认接收离线消息
+     *
+     * @param params 参数，包含messageIds
+     * @param request HTTP请求
+     * @return 确认结果
+     */
+    @PostMapping("/offline/confirm")
+    public Result confirmOfflineMessages(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+        String userPhone = AuthUtil.getCurrentUserPhone(request);
+        @SuppressWarnings("unchecked")
+        List<Long> messageIds = (List<Long>) params.get("messageIds");
+        
+        boolean success = messageService.confirmOfflineMessages(userPhone, messageIds);
+        if (success) {
+            return Result.success();
+        } else {
+            return Result.error("确认离线消息失败");
+        }
+    }
+
+    /**
      * 获取消息详情
      *
      * @param messageId 消息ID

@@ -161,4 +161,21 @@ public interface MessageService {
      * @return 是否成功
      */
     boolean deleteMessage(Long messageId, String operatorPhone);
+    
+    /**
+     * 获取用户的离线消息
+     *
+     * @param userPhone 用户手机号
+     * @return 离线消息列表
+     */
+    List<Message> getOfflineMessages(String userPhone);
+    
+    /**
+     * 确认接收离线消息
+     *
+     * @param userPhone 用户手机号
+     * @param messageIds 消息ID列表
+     * @return 是否成功
+     */
+    boolean confirmOfflineMessages(String userPhone, List<Long> messageIds);
 } 

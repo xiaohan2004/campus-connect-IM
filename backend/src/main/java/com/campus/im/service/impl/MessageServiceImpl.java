@@ -327,4 +327,26 @@ public class MessageServiceImpl implements MessageService {
         
         return messageMapper.updateStatus(messageId, MessageConstant.STATUS_DELETED) > 0;
     }
+    
+    @Override
+    public List<Message> getOfflineMessages(String userPhone) {
+        if (userPhone == null) {
+            return Collections.emptyList();
+        }
+        
+        // 获取用户的离线消息
+        // 这里假设messageMapper中有相应的方法
+        return messageMapper.selectOfflineMessages(userPhone);
+    }
+    
+    @Override
+    public boolean confirmOfflineMessages(String userPhone, List<Long> messageIds) {
+        if (userPhone == null || messageIds == null || messageIds.isEmpty()) {
+            return false;
+        }
+        
+        // 确认接收离线消息
+        // 这里假设messageMapper中有相应的方法
+        return messageMapper.confirmOfflineMessages(userPhone, messageIds) > 0;
+    }
 } 

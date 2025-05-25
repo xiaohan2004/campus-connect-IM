@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.FriendGroupMapper">
+    
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.FriendGroup">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="name" property="name"/>
+        <result column="sort" property="sort"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, user_id, name, sort, created_at, updated_at
+    </sql>
+    
+    <insert id="insert" parameterType="com.campus.im.entity.FriendGroup" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO friend_group (
+            user_id, name, sort
+        )
+        VALUES (
+            #{userId}, #{name}, #{sort}
+        )
+    </insert>
+    
+    <update id="update" parameterType="com.campus.im.entity.FriendGroup">
+        UPDATE friend_group
+        SET name = #{name}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+    
+    <delete id="deleteById">
+        DELETE FROM friend_group
+        WHERE id = #{id}
+    </delete>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_group
+        WHERE id = #{id}
+    </select>
+    
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_group
+        WHERE user_id = #{userId}
+        ORDER BY sort ASC, created_at ASC
+    </select>
+    
+    <select id="selectByUserIdAndName" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_group
+        WHERE user_id = #{userId} AND name = #{name}
+        LIMIT 1
+    </select>
+    
+    <select id="selectDefaultByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_group
+        WHERE user_id = #{userId}
+        ORDER BY sort ASC, created_at ASC
+        LIMIT 1
+    </select>
+    
+    <update id="updateFriendGroup">
+        UPDATE friendship
+        SET group_id = #{groupId}
+        WHERE user_id = #{userId} AND friend_id = #{friendId}
+    </update>
+</mapper> 

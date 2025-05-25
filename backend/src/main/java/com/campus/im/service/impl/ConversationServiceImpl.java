@@ -163,4 +163,138 @@ public class ConversationServiceImpl implements ConversationService {
         
         return true;
     }
+    
+    @Override
+    public List<Conversation> getUserConversations(Long userId) {
+        // 复用已有的获取会话列表方法
+        return getConversationList(userId);
+    }
+    
+    @Override
+    public Conversation getConversation(Long conversationId, Long userId) {
+        if (conversationId == null || userId == null) {
+            return null;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return null;
+        }
+        
+        return conversation;
+    }
+    
+    @Override
+    @Transactional
+    public Conversation createOrGetPrivateConversation(Long userId, Long targetUserId) {
+        if (userId == null || targetUserId == null) {
+            return null;
+        }
+        
+        // 使用已有方法创建或获取私聊会话
+        return getOrCreateConversation(userId, MessageConstant.CONVERSATION_TYPE_PRIVATE, targetUserId);
+    }
+    
+    @Override
+    @Transactional
+    public Conversation createOrGetGroupConversation(Long userId, Long groupId) {
+        if (userId == null || groupId == null) {
+            return null;
+        }
+        
+        // 使用已有方法创建或获取群聊会话
+        return getOrCreateConversation(userId, MessageConstant.CONVERSATION_TYPE_GROUP, groupId);
+    }
+    
+    @Override
+    @Transactional
+    public boolean deleteConversation(Long conversationId, Long userId) {
+        if (conversationId == null || userId == null) {
+            return false;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 删除会话
+        return conversationMapper.delete(conversationId) > 0;
+    }
+    
+    @Override
+    @Transactional
+    public boolean topConversation(Long conversationId, Long userId, Boolean isTop) {
+        if (conversationId == null || userId == null || isTop == null) {
+            return false;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 设置置顶状态
+        int topStatus = isTop ? ConversationConstant.IS_TOP_YES : ConversationConstant.IS_TOP_NO;
+        return conversationMapper.updateTopStatus(conversationId, topStatus) > 0;
+    }
+    
+    @Override
+    @Transactional
+    public boolean muteConversation(Long conversationId, Long userId, Boolean isMuted) {
+        if (conversationId == null || userId == null || isMuted == null) {
+            return false;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 设置免打扰状态
+        int muteStatus = isMuted ? ConversationConstant.IS_MUTED_YES : ConversationConstant.IS_MUTED_NO;
+        return conversationMapper.updateMuteStatus(conversationId, muteStatus) > 0;
+    }
+    
+    @Override
+    @Transactional
+    public boolean clearConversationMessages(Long conversationId, Long userId) {
+        if (conversationId == null || userId == null) {
+            return false;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 清空会话消息（重置最后一条消息和未读消息数）
+        conversation.setLastMessageId(null);
+        conversation.setLastMessageTime(null);
+        conversation.setUnreadCount(0);
+        
+        return conversationMapper.update(conversation) > 0;
+    }
+    
+    @Override
+    @Transactional
+    public boolean markConversationAsRead(Long conversationId, Long userId) {
+        if (conversationId == null || userId == null) {
+            return false;
+        }
+        
+        // 获取会话并验证所有者
+        Conversation conversation = conversationMapper.selectById(conversationId);
+        if (conversation == null || !conversation.getUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 重置未读消息数
+        return resetUnreadCount(conversationId);
+    }
 } 
