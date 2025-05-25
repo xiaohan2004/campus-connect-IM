@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.FriendRequestMapper">
+    
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.FriendRequest">
+        <id column="id" property="id"/>
+        <result column="from_user_id" property="fromUserId"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="message" property="message"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, from_user_id, to_user_id, message, status, created_at, updated_at
+    </sql>
+    
+    <insert id="insert" parameterType="com.campus.im.entity.FriendRequest" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO friend_request (from_user_id, to_user_id, message, status)
+        VALUES (#{fromUserId}, #{toUserId}, #{message}, #{status})
+    </insert>
+    
+    <update id="updateStatus">
+        UPDATE friend_request
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_request
+        WHERE id = #{id}
+    </select>
+    
+    <select id="selectByFromUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_request
+        WHERE from_user_id = #{fromUserId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <select id="selectByToUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_request
+        WHERE to_user_id = #{toUserId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <select id="selectPendingByToUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_request
+        WHERE to_user_id = #{toUserId} AND status = 0
+        ORDER BY created_at DESC
+    </select>
+    
+    <select id="selectPendingByFromUserIdAndToUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM friend_request
+        WHERE from_user_id = #{fromUserId} AND to_user_id = #{toUserId} AND status = 0
+        LIMIT 1
+    </select>
+    
+</mapper> 

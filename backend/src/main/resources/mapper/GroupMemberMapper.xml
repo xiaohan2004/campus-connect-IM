@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.GroupMemberMapper">
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.GroupMember">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="role" property="role"/>
+        <result column="mute_end_time" property="muteEndTime"/>
+        <result column="join_time" property="joinTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, group_id, user_id, nickname, role, mute_end_time, join_time, created_at, updated_at
+    </sql>
+
+    <!-- 插入群成员记录 -->
+    <insert id="insert" parameterType="com.campus.im.entity.GroupMember" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO group_member (group_id, user_id, nickname, role, mute_end_time, join_time)
+        VALUES (#{groupId}, #{userId}, #{nickname}, #{role}, #{muteEndTime}, #{joinTime})
+    </insert>
+
+    <!-- 批量插入群成员记录 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO group_member (group_id, user_id, nickname, role, join_time)
+        VALUES
+        <foreach collection="list" item="member" separator=",">
+            (#{member.groupId}, #{member.userId}, #{member.nickname}, #{member.role}, #{member.joinTime})
+        </foreach>
+    </insert>
+
+    <!-- 删除群成员记录 -->
+    <delete id="delete">
+        DELETE FROM group_member
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </delete>
+
+    <!-- 更新群成员角色 -->
+    <update id="updateRole">
+        UPDATE group_member
+        SET role = #{role}, updated_at = NOW()
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </update>
+
+    <!-- 更新群成员昵称 -->
+    <update id="updateNickname">
+        UPDATE group_member
+        SET nickname = #{nickname}, updated_at = NOW()
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </update>
+
+    <!-- 更新群成员禁言状态 -->
+    <update id="updateMuteStatus">
+        UPDATE group_member
+        SET mute_end_time = #{muteEndTime}, updated_at = NOW()
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </update>
+
+    <!-- 根据ID查询群成员 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM group_member
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据群组ID和用户ID查询群成员 -->
+    <select id="selectByGroupIdAndUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM group_member
+        WHERE group_id = #{groupId} AND user_id = #{userId}
+    </select>
+
+    <!-- 根据群组ID查询所有群成员 -->
+    <select id="selectByGroupId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM group_member
+        WHERE group_id = #{groupId}
+        ORDER BY role ASC, join_time ASC
+    </select>
+
+    <!-- 根据群组ID和角色查询群成员 -->
+    <select id="selectByGroupIdAndRole" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM group_member
+        WHERE group_id = #{groupId} AND role = #{role}
+    </select>
+
+    <!-- 查询用户所有加入的群组ID -->
+    <select id="selectGroupIdsByUserId" resultType="java.lang.Long">
+        SELECT group_id
+        FROM group_member
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询群成员数量 -->
+    <select id="countByGroupId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM group_member
+        WHERE group_id = #{groupId}
+    </select>
+
+    <!-- 查询正在禁言的成员 -->
+    <select id="selectMutedMembers" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM group_member
+        WHERE group_id = #{groupId} AND mute_end_time > NOW()
+    </select>
+</mapper> 

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.ChatGroupMapper">
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.ChatGroup">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="avatar" property="avatar"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="description" property="description"/>
+        <result column="announcement" property="announcement"/>
+        <result column="member_count" property="memberCount"/>
+        <result column="max_member_count" property="maxMemberCount"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, avatar, creator_id, description, announcement, member_count, max_member_count, status, created_at, updated_at
+    </sql>
+
+    <!-- 插入群组记录 -->
+    <insert id="insert" parameterType="com.campus.im.entity.ChatGroup" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_group (name, avatar, creator_id, description, announcement, member_count, max_member_count, status)
+        VALUES (#{name}, #{avatar}, #{creatorId}, #{description}, #{announcement}, #{memberCount}, #{maxMemberCount}, #{status})
+    </insert>
+
+    <!-- 更新群组信息 -->
+    <update id="update" parameterType="com.campus.im.entity.ChatGroup">
+        UPDATE chat_group
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="announcement != null">announcement = #{announcement},</if>
+            <if test="memberCount != null">member_count = #{memberCount},</if>
+            <if test="maxMemberCount != null">max_member_count = #{maxMemberCount},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新群组状态 -->
+    <update id="updateStatus">
+        UPDATE chat_group
+        SET status = #{status}, updated_at = NOW()
+        WHERE id = #{groupId}
+    </update>
+
+    <!-- 更新群组成员数量 -->
+    <update id="updateMemberCount">
+        UPDATE chat_group
+        SET member_count = member_count + #{delta}, updated_at = NOW()
+        WHERE id = #{groupId}
+    </update>
+
+    <!-- 根据ID查询群组 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_group
+        WHERE id = #{id} AND status != 2
+    </select>
+
+    <!-- 根据创建者ID查询群组 -->
+    <select id="selectByCreator" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_group
+        WHERE creator_id = #{creatorId} AND status != 2
+    </select>
+
+    <!-- 根据用户ID查询所属群组 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        g.<include refid="Base_Column_List"/>
+        FROM chat_group g
+        JOIN group_member m ON g.id = m.group_id
+        WHERE m.user_id = #{userId} AND g.status != 2
+    </select>
+
+    <!-- 模糊查询群组 -->
+    <select id="selectByNameLike" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_group
+        WHERE name LIKE CONCAT('%', #{name}, '%') AND status != 2
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 查询群组数量 -->
+    <select id="countByNameLike" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM chat_group
+        WHERE name LIKE CONCAT('%', #{name}, '%') AND status != 2
+    </select>
+</mapper> 

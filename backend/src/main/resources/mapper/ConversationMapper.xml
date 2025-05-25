@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.ConversationMapper">
+    
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.Conversation">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="conversation_type" property="conversationType"/>
+        <result column="target_id" property="targetId"/>
+        <result column="unread_count" property="unreadCount"/>
+        <result column="last_message_id" property="lastMessageId"/>
+        <result column="last_message_time" property="lastMessageTime"/>
+        <result column="is_top" property="isTop"/>
+        <result column="is_muted" property="isMuted"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, user_id, conversation_type, target_id, unread_count, last_message_id,
+        last_message_time, is_top, is_muted, status, created_at, updated_at
+    </sql>
+    
+    <insert id="insert" parameterType="com.campus.im.entity.Conversation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO conversation (
+            user_id, conversation_type, target_id, unread_count, last_message_id,
+            last_message_time, is_top, is_muted, status
+        )
+        VALUES (
+            #{userId}, #{conversationType}, #{targetId}, #{unreadCount}, #{lastMessageId},
+            #{lastMessageTime}, #{isTop}, #{isMuted}, #{status}
+        )
+    </insert>
+    
+    <update id="update" parameterType="com.campus.im.entity.Conversation">
+        UPDATE conversation
+        <set>
+            <if test="unreadCount != null">
+                unread_count = #{unreadCount},
+            </if>
+            <if test="lastMessageId != null">
+                last_message_id = #{lastMessageId},
+            </if>
+            <if test="lastMessageTime != null">
+                last_message_time = #{lastMessageTime},
+            </if>
+            <if test="isTop != null">
+                is_top = #{isTop},
+            </if>
+            <if test="isMuted != null">
+                is_muted = #{isMuted},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+    
+    <update id="delete">
+        UPDATE conversation
+        SET status = 1
+        WHERE id = #{id}
+    </update>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        WHERE id = #{id}
+    </select>
+    
+    <select id="selectByUserIdAndTarget" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        WHERE user_id = #{userId}
+          AND conversation_type = #{conversationType}
+          AND target_id = #{targetId}
+    </select>
+    
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        WHERE user_id = #{userId}
+          AND status = 0
+        ORDER BY is_top DESC, last_message_time DESC
+    </select>
+    
+    <update id="updateUnreadCount">
+        UPDATE conversation
+        SET unread_count = unread_count + #{count}
+        WHERE id = #{id}
+    </update>
+    
+    <update id="resetUnreadCount">
+        UPDATE conversation
+        SET unread_count = 0
+        WHERE id = #{id}
+    </update>
+    
+    <update id="updateLastMessage">
+        UPDATE conversation c, message m
+        SET c.last_message_id = #{messageId},
+            c.last_message_time = m.send_time
+        WHERE c.id = #{id}
+          AND m.id = #{messageId}
+    </update>
+    
+    <update id="updateTopStatus">
+        UPDATE conversation
+        SET is_top = #{isTop}
+        WHERE id = #{id}
+    </update>
+    
+    <update id="updateMuteStatus">
+        UPDATE conversation
+        SET is_muted = #{isMuted}
+        WHERE id = #{id}
+    </update>
+    
+</mapper> 

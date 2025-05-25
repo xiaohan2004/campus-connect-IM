@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.MessageMapper">
+    
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.Message">
+        <id column="id" property="id"/>
+        <result column="conversation_type" property="conversationType"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="receiver_id" property="receiverId"/>
+        <result column="content_type" property="contentType"/>
+        <result column="content" property="content"/>
+        <result column="extra" property="extra"/>
+        <result column="is_recalled" property="isRecalled"/>
+        <result column="status" property="status"/>
+        <result column="send_time" property="sendTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+    
+    <sql id="Base_Column_List">
+        id, conversation_type, sender_id, receiver_id, content_type, content, extra,
+        is_recalled, status, send_time, created_at, updated_at
+    </sql>
+    
+    <insert id="insert" parameterType="com.campus.im.entity.Message" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO message (
+            conversation_type, sender_id, receiver_id, content_type, content, extra,
+            is_recalled, status, send_time
+        )
+        VALUES (
+            #{conversationType}, #{senderId}, #{receiverId}, #{contentType}, #{content}, #{extra},
+            #{isRecalled}, #{status}, #{sendTime}
+        )
+    </insert>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE id = #{id}
+    </select>
+    
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    
+    <select id="selectPrivateMessages" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE conversation_type = 0
+        AND (
+            (sender_id = #{senderId} AND receiver_id = #{receiverId})
+            OR
+            (sender_id = #{receiverId} AND receiver_id = #{senderId})
+        )
+        AND status = 0
+        ORDER BY send_time DESC
+        LIMIT #{limit}
+    </select>
+    
+    <select id="selectPrivateMessagesBeforeId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE conversation_type = 0
+        AND (
+            (sender_id = #{senderId} AND receiver_id = #{receiverId})
+            OR
+            (sender_id = #{receiverId} AND receiver_id = #{senderId})
+        )
+        AND status = 0
+        AND id &lt; #{beforeMessageId}
+        ORDER BY send_time DESC
+        LIMIT #{limit}
+    </select>
+    
+    <select id="selectGroupMessages" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE conversation_type = 1
+        AND receiver_id = #{groupId}
+        AND status = 0
+        ORDER BY send_time DESC
+        LIMIT #{limit}
+    </select>
+    
+    <select id="selectGroupMessagesBeforeId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message
+        WHERE conversation_type = 1
+        AND receiver_id = #{groupId}
+        AND status = 0
+        AND id &lt; #{beforeMessageId}
+        ORDER BY send_time DESC
+        LIMIT #{limit}
+    </select>
+    
+    <update id="updateStatus">
+        UPDATE message
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+    
+    <update id="updateRecallStatus">
+        UPDATE message
+        SET is_recalled = #{isRecalled}
+        WHERE id = #{id}
+    </update>
+    
+</mapper> 

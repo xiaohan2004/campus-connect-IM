@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campus.im.mapper.MessageReceiptMapper">
+    <resultMap id="BaseResultMap" type="com.campus.im.entity.MessageReceipt">
+        <id column="id" property="id"/>
+        <result column="message_id" property="messageId"/>
+        <result column="user_id" property="userId"/>
+        <result column="is_read" property="isRead"/>
+        <result column="read_time" property="readTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, message_id, user_id, is_read, read_time, created_at, updated_at
+    </sql>
+
+    <!-- 插入消息回执记录 -->
+    <insert id="insert" parameterType="com.campus.im.entity.MessageReceipt" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO message_receipt (message_id, user_id, is_read)
+        VALUES (#{messageId}, #{userId}, #{isRead})
+    </insert>
+
+    <!-- 批量插入消息回执记录 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO message_receipt (message_id, user_id, is_read)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.messageId}, #{item.userId}, #{item.isRead})
+        </foreach>
+    </insert>
+
+    <!-- 更新消息已读状态 -->
+    <update id="updateReadStatus">
+        UPDATE message_receipt
+        SET is_read = 1, read_time = NOW(), updated_at = NOW()
+        WHERE message_id = #{messageId} AND user_id = #{userId}
+    </update>
+
+    <!-- 批量更新消息已读状态 -->
+    <update id="batchUpdateReadStatus">
+        UPDATE message_receipt
+        SET is_read = 1, read_time = NOW(), updated_at = NOW()
+        WHERE message_id IN
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+        AND user_id = #{userId}
+    </update>
+
+    <!-- 根据ID查询消息回执 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message_receipt
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据消息ID和用户ID查询消息回执 -->
+    <select id="selectByMessageIdAndUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message_receipt
+        WHERE message_id = #{messageId} AND user_id = #{userId}
+    </select>
+
+    <!-- 根据消息ID查询所有回执 -->
+    <select id="selectByMessageId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM message_receipt
+        WHERE message_id = #{messageId}
+    </select>
+
+    <!-- 根据消息ID查询已读用户ID列表 -->
+    <select id="selectReadUserIdsByMessageId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM message_receipt
+        WHERE message_id = #{messageId} AND is_read = 1
+    </select>
+
+    <!-- 根据消息ID查询未读用户ID列表 -->
+    <select id="selectUnreadUserIdsByMessageId" resultType="java.lang.Long">
+        SELECT user_id
+        FROM message_receipt
+        WHERE message_id = #{messageId} AND is_read = 0
+    </select>
+
+    <!-- 统计消息已读数量 -->
+    <select id="countReadByMessageId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM message_receipt
+        WHERE message_id = #{messageId} AND is_read = 1
+    </select>
+
+    <!-- 统计消息未读数量 -->
+    <select id="countUnreadByMessageId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM message_receipt
+        WHERE message_id = #{messageId} AND is_read = 0
+    </select>
+
+    <!-- 根据用户ID查询未读消息ID列表 -->
+    <select id="selectUnreadMessageIdsByUserId" resultType="java.lang.Long">
+        SELECT message_id
+        FROM message_receipt
+        WHERE user_id = #{userId} AND is_read = 0
+    </select>
+
+    <!-- 根据用户ID和会话ID查询未读消息数量 -->
+    <select id="countUnreadMessagesByConversation" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM message_receipt r
+        JOIN message m ON r.message_id = m.id
+        WHERE r.user_id = #{userId} AND m.conversation_id = #{conversationId} AND r.is_read = 0
+    </select>
+</mapper> 
