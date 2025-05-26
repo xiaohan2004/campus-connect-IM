@@ -10,12 +10,15 @@ const state = {
 
 const mutations = {
   SET_TOKEN(state, token) {
+    console.log('执行 SET_TOKEN mutation，token：', token);
     state.token = token;
     state.isLoggedIn = !!token;
     if (token) {
       localStorage.setItem('token', token);
+      console.log('Token 已保存到 localStorage');
     } else {
       localStorage.removeItem('token');
+      console.log('Token 已从 localStorage 中移除');
     }
   },
   SET_USER_INFO(state, userInfo) {
@@ -33,11 +36,14 @@ const actions = {
       login(userInfo)
         .then(response => {
           const { data } = response;
-          commit('SET_TOKEN', data.token);
-          // 连接WebSocket
-          connectWebSocket(data.token, 
-            (message, type) => dispatch('message/handleWebSocketMessage', { message, type }, { root: true }),
-            (status) => dispatch('user/handleStatusUpdate', status, { root: true })
+          commit('SET_TOKEN', data);
+          connectWebSocket(data, 
+            (message, type) => {
+              dispatch('message/handleWebSocketMessage', { message, type }, { root: true });
+            },
+            (status) => {
+              dispatch('user/handleStatusUpdate', status, { root: true });
+            }
           );
           resolve(response);
         })
