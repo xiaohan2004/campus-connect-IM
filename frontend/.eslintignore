@@ -1,0 +1,8 @@
+/node_modules/
+/dist/
+/public/
+*.d.ts
+*.js.map
+*.min.js
+*.css
+*.scss 

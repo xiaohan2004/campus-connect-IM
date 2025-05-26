@@ -1,0 +1,81 @@
+// 苹果风格颜色系统
+$primary-color: #007AFF; // 苹果蓝
+$secondary-color: #5AC8FA; // 浅蓝色
+$success-color: #34C759; // 绿色
+$warning-color: #FF9500; // 橙色
+$danger-color: #FF3B30; // 红色
+$info-color: #5856D6; // 紫色
+
+// 灰度系列
+$white: #FFFFFF;
+$gray-100: #F2F2F7;
+$gray-200: #E5E5EA;
+$gray-300: #D1D1D6;
+$gray-400: #C7C7CC;
+$gray-500: #AEAEB2;
+$gray-600: #8E8E93;
+$gray-700: #636366;
+$gray-800: #48484A;
+$gray-900: #3A3A3C;
+$black: #000000;
+
+// 背景色
+$bg-primary: $white;
+$bg-secondary: $gray-100;
+$bg-dark: #1C1C1E; // 深色模式背景
+
+// 文本颜色
+$text-primary: $black;
+$text-secondary: $gray-700;
+$text-muted: $gray-500;
+$text-light: $white;
+
+// 边框颜色
+$border-color: $gray-200;
+$border-dark: $gray-800;
+
+// 阴影
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+// 圆角
+$border-radius-sm: 6px;
+$border-radius: 10px;
+$border-radius-lg: 16px;
+$border-radius-full: 9999px;
+
+// 间距
+$spacing-1: 4px;
+$spacing-2: 8px;
+$spacing-3: 12px;
+$spacing-4: 16px;
+$spacing-5: 20px;
+$spacing-6: 24px;
+$spacing-8: 32px;
+$spacing-10: 40px;
+$spacing-12: 48px;
+$spacing-16: 64px;
+
+// 字体
+$font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-2xl: 24px;
+$font-size-3xl: 30px;
+$font-size-4xl: 36px;
+
+// 字重
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// 过渡
+$transition-base: all 0.2s ease-in-out;
+$transition-slow: all 0.3s ease-in-out;
+$transition-fast: all 0.1s ease-in-out; 
