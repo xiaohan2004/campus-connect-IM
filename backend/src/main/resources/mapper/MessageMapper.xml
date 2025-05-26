@@ -22,6 +22,11 @@
         is_recalled, status, send_time, created_at, updated_at
     </sql>
     
+    <sql id="Base_Column_List_With_Prefix">
+        m.id, m.conversation_type, m.sender_id, m.receiver_id, m.content_type, m.content, m.extra,
+        m.is_recalled, m.status, m.send_time, m.created_at, m.updated_at
+    </sql>
+    
     <insert id="insert" parameterType="com.campus.im.entity.Message" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO message (
             conversation_type, sender_id, receiver_id, content_type, content, extra,
@@ -118,7 +123,7 @@
     
     <select id="selectPrivateMessagesByPhone" resultMap="BaseResultMap">
         SELECT
-        <include refid="Base_Column_List"/>
+        <include refid="Base_Column_List_With_Prefix"/>
         FROM message m
         JOIN user u1 ON m.sender_id = u1.id
         JOIN user u2 ON m.receiver_id = u2.id
@@ -161,7 +166,7 @@
     
     <select id="selectOfflineMessages" resultMap="BaseResultMap">
         SELECT
-        <include refid="Base_Column_List"/>
+        <include refid="Base_Column_List_With_Prefix"/>
         FROM message m
         JOIN user u ON m.receiver_id = u.id
         WHERE u.phone = #{userPhone}
