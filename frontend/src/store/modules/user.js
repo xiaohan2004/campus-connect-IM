@@ -1,4 +1,4 @@
-import { getCurrentUser, updateUserStatus, updateUser } from '@/api/user';
+import { getCurrentUser, updateUserStatus, updateUser, getUserByPhone } from '@/api/user';
 import { login } from '@/api/auth';
 import { connectWebSocket, disconnectWebSocket } from '@/api/websocket';
 
@@ -109,6 +109,20 @@ const actions = {
       commit('friendship/CLEAR_FRIENDS', null, { root: true });
       commit('group/CLEAR_GROUPS', null, { root: true });
       resolve();
+    });
+  },
+
+  // 根据手机号获取用户信息
+  getUserByPhone({ commit }, phone) {
+    return new Promise((resolve, reject) => {
+      getUserByPhone(phone)
+        .then(response => {
+          const { data } = response;
+          resolve(data);
+        })
+        .catch(error => {
+          reject(error);
+        });
     });
   }
 };

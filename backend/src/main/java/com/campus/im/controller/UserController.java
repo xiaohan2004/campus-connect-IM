@@ -46,10 +46,10 @@ public class UserController {
     @GetMapping("/phone/{phone}")
     public Result getUserByPhone(@PathVariable String phone, HttpServletRequest request) {
         // 检查是否有权限获取该用户信息
-        Result permissionCheck = AuthUtil.checkPermission(request, phone);
-        if (permissionCheck != null) {
-            return permissionCheck;
-        }
+//        Result permissionCheck = AuthUtil.checkPermission(request, phone);
+//        if (permissionCheck != null) {
+//            return permissionCheck;
+//        }
 
         User user = userService.getUserByPhone(phone);
         if (user == null) {
