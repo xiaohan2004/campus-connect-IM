@@ -457,6 +457,7 @@ export default {
   flex-direction: column;
   height: 100%;
   background-color: $bg-secondary;
+  padding-bottom: 55px; /* 为底部导航栏留出空间 */
 }
 
 .message-list {

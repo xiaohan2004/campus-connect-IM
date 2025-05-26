@@ -103,9 +103,12 @@
               ></el-option>
             </el-select>
           </div>
+          <div v-if="groups.length === 0" class="empty-tip">
+            <p>您还没有加入任何群组</p>
+          </div>
           <div class="dialog-footer">
             <button class="btn btn-text" @click="showAddConversation = false">取消</button>
-            <button class="btn btn-primary" @click="createGroupConversation" :disabled="!selectedGroupId">
+            <button class="btn btn-primary" @click="createGroupConversation" :disabled="!selectedGroupId || groups.length === 0">
               加入群聊
             </button>
           </div>
@@ -158,13 +161,7 @@ export default {
     const conversations = computed(() => store.state.conversation.conversations);
     const currentConversationId = computed(() => store.state.conversation.currentConversationId);
     const friends = computed(() => store.state.friendship.friends);
-    
-    // 模拟群组数据，实际应该从API获取
-    const groups = ref([
-      { id: 1, name: '班级群' },
-      { id: 2, name: '学习小组' },
-      { id: 3, name: '兴趣社团' }
-    ]);
+    const groups = computed(() => store.state.group.groups);
 
     // 监听路由变化
     watch(
@@ -187,9 +184,10 @@ export default {
     onMounted(() => {
       window.addEventListener('resize', handleResize);
       
-      // 获取会话列表
+      // 获取会话列表和群组列表
       if (isLoggedIn.value) {
         store.dispatch('conversation/getConversations');
+        store.dispatch('group/getGroups');
       }
     });
 
@@ -323,6 +321,7 @@ export default {
 .conversation-list {
   flex: 1;
   overflow-y: auto;
+  padding-bottom: 55px; /* 为底部导航栏留出空间 */
 }
 
 .conversation-item {
@@ -450,6 +449,17 @@ export default {
   padding: $spacing-2 0;
 }
 
+.empty-tip {
+  text-align: center;
+  padding: $spacing-4;
+  
+  p {
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    margin: 0;
+  }
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -466,9 +476,5 @@ export default {
   left: 0;
   right: 0;
   z-index: 100;
-  
-  @media (min-width: 768px) {
-    display: none;
-  }
 }
 </style> 

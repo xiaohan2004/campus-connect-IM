@@ -1,4 +1,4 @@
-import { getCurrentUser, updateUserStatus } from '@/api/user';
+import { getCurrentUser, updateUserStatus, updateUser } from '@/api/user';
 import { login } from '@/api/auth';
 import { connectWebSocket, disconnectWebSocket } from '@/api/websocket';
 
@@ -68,6 +68,22 @@ const actions = {
     });
   },
 
+  // 更新用户信息
+  updateUser({ commit, state }, userData) {
+    return new Promise((resolve, reject) => {
+      // 合并当前用户信息和更新的数据
+      const updatedUserData = { ...state.userInfo, ...userData };
+      
+      updateUser(updatedUserData)
+        .then(response => {
+          resolve(response);
+        })
+        .catch(error => {
+          reject(error);
+        });
+    });
+  },
+
   // 更新用户在线状态
   updateStatus() {
     return updateUserStatus();
@@ -91,6 +107,7 @@ const actions = {
       commit('conversation/CLEAR_CONVERSATIONS', null, { root: true });
       commit('message/CLEAR_MESSAGES', null, { root: true });
       commit('friendship/CLEAR_FRIENDS', null, { root: true });
+      commit('group/CLEAR_GROUPS', null, { root: true });
       resolve();
     });
   }

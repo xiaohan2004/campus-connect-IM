@@ -21,7 +21,7 @@ const routes = [
       {
         path: '',
         name: 'ChatDefault',
-        component: () => import('@/views/chat/Welcome.vue')
+        component: () => import('@/views/chat/ChatWelcome.vue')
       },
       {
         path: 'conversation/:id',
