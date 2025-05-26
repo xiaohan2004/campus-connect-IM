@@ -5,8 +5,8 @@
       <div class="navbar">
         <div class="navbar-title">消息</div>
         <div class="navbar-right">
-          <button class="btn-icon" @click="showAddConversation = true">
-            <i class="el-icon-plus"></i>
+          <button class="btn btn-primary btn-sm btn-compact" @click="openAddConversation">
+            新会话
           </button>
         </div>
       </div>
@@ -14,7 +14,7 @@
       <div class="conversation-list scrollable">
         <div v-if="conversations.length === 0" class="empty-state">
           <p>暂无会话</p>
-          <button class="btn btn-outline" @click="showAddConversation = true">
+          <button class="btn btn-outline" @click="openAddConversation">
             开始新的对话
           </button>
         </div>
@@ -43,7 +43,7 @@
 
     <!-- 右侧聊天内容 -->
     <div class="chat-content" :class="{ 'content-expanded': isMobile && showConversation }">
-      <router-view v-if="isLoggedIn" @back="handleBack"></router-view>
+      <router-view v-if="isLoggedIn" @back="handleBack" @open-new-conversation="openAddConversation"></router-view>
     </div>
 
     <!-- 添加会话弹窗 -->
@@ -51,7 +51,7 @@
       v-model="showAddConversation"
       title="新建会话"
       width="80%"
-      :before-close="() => showAddConversation = false"
+      :before-close="closeAddConversation"
     >
       <div class="dialog-content">
         <div class="tabs">
@@ -84,7 +84,7 @@
             </el-select>
           </div>
           <div class="dialog-footer">
-            <button class="btn btn-text" @click="showAddConversation = false">取消</button>
+            <button class="btn btn-text" @click="closeAddConversation">取消</button>
             <button class="btn btn-primary" @click="createPrivateConversation" :disabled="!selectedFriendId">
               开始聊天
             </button>
@@ -107,7 +107,7 @@
             <p>您还没有加入任何群组</p>
           </div>
           <div class="dialog-footer">
-            <button class="btn btn-text" @click="showAddConversation = false">取消</button>
+            <button class="btn btn-text" @click="closeAddConversation">取消</button>
             <button class="btn btn-primary" @click="createGroupConversation" :disabled="!selectedGroupId || groups.length === 0">
               加入群聊
             </button>
@@ -163,6 +163,16 @@ export default {
     const friends = computed(() => store.state.friendship.friends);
     const groups = computed(() => store.state.group.groups);
 
+    // 打开新建会话弹窗
+    const openAddConversation = () => {
+      showAddConversation.value = true;
+    };
+    
+    // 关闭新建会话弹窗
+    const closeAddConversation = () => {
+      showAddConversation.value = false;
+    };
+
     // 监听路由变化
     watch(
       () => route.path,
@@ -205,15 +215,18 @@ export default {
       }
 
       try {
+        console.log('开始创建私聊会话，好友ID:', selectedFriendId.value);
         const conversation = await store.dispatch(
           'conversation/createPrivateConversation',
-          selectedFriendId.value
+          { targetUserId: selectedFriendId.value }
         );
-        showAddConversation.value = false;
+        console.log('私聊会话创建成功:', conversation);
+        closeAddConversation();
         selectedFriendId.value = '';
         router.push(`/chat/conversation/${conversation.conversationId}`);
       } catch (error) {
-        ElMessage.error('创建会话失败');
+        console.error('创建私聊会话失败:', error);
+        ElMessage.error(`创建会话失败: ${error.message || '未知错误'}`);
       }
     };
 
@@ -225,15 +238,18 @@ export default {
       }
 
       try {
+        console.log('开始创建群聊会话，群组ID:', selectedGroupId.value);
         const conversation = await store.dispatch(
           'conversation/createGroupConversation',
-          selectedGroupId.value
+          { groupId: selectedGroupId.value }
         );
-        showAddConversation.value = false;
+        console.log('群聊会话创建成功:', conversation);
+        closeAddConversation();
         selectedGroupId.value = '';
         router.push(`/chat/conversation/${conversation.conversationId}`);
       } catch (error) {
-        ElMessage.error('创建会话失败');
+        console.error('创建群聊会话失败:', error);
+        ElMessage.error(`创建会话失败: ${error.message || '未知错误'}`);
       }
     };
 
@@ -260,7 +276,9 @@ export default {
       createPrivateConversation,
       createGroupConversation,
       handleBack,
-      formatTime
+      formatTime,
+      openAddConversation,
+      closeAddConversation
     };
   }
 };

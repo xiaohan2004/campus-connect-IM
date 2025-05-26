@@ -119,6 +119,12 @@ input, textarea {
     font-size: $font-size-sm;
   }
   
+  &-compact {
+    padding: $spacing-2 $spacing-3;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  
   &-lg {
     padding: $spacing-4 $spacing-8;
     font-size: $font-size-lg;
@@ -218,7 +224,7 @@ input, textarea {
   }
   
   &-left, &-right {
-    width: 80px;
+    width: 100px;
     display: flex;
     align-items: center;
   }

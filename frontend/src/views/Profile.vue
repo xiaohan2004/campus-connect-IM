@@ -4,8 +4,8 @@
     <div class="navbar">
       <div class="navbar-title">个人资料</div>
       <div class="navbar-right">
-        <button class="btn-icon" @click="handleLogout">
-          <i class="el-icon-switch-button"></i>
+        <button class="btn btn-danger btn-sm" @click="handleLogout">
+          退出
         </button>
       </div>
     </div>

@@ -1,8 +1,8 @@
 import { 
   getConversationList, 
   getConversationDetail, 
-  createPrivateConversation, 
-  createGroupConversation,
+  createPrivateConversation as apiCreatePrivateConversation, 
+  createGroupConversation as apiCreateGroupConversation,
   deleteConversation,
   topConversation,
   muteConversation,
@@ -93,32 +93,38 @@ const actions = {
   },
 
   // 创建或获取私聊会话
-  createPrivateConversation({ commit }, targetUserId) {
+  createPrivateConversation({ commit }, payload) {
     return new Promise((resolve, reject) => {
-      createPrivateConversation({ targetUserId })
+      console.log('Vuex action: 创建私聊会话，参数:', payload);
+      apiCreatePrivateConversation(payload)
         .then(response => {
+          console.log('API 响应成功:', response);
           const { data } = response;
           commit('ADD_CONVERSATION', data);
           commit('SET_CURRENT_CONVERSATION', data);
           resolve(data);
         })
         .catch(error => {
+          console.error('API 调用失败:', error);
           reject(error);
         });
     });
   },
 
   // 创建或获取群聊会话
-  createGroupConversation({ commit }, groupId) {
+  createGroupConversation({ commit }, payload) {
     return new Promise((resolve, reject) => {
-      createGroupConversation({ groupId })
+      console.log('Vuex action: 创建群聊会话，参数:', payload);
+      apiCreateGroupConversation(payload)
         .then(response => {
+          console.log('API 响应成功:', response);
           const { data } = response;
           commit('ADD_CONVERSATION', data);
           commit('SET_CURRENT_CONVERSATION', data);
           resolve(data);
         })
         .catch(error => {
+          console.error('API 调用失败:', error);
           reject(error);
         });
     });

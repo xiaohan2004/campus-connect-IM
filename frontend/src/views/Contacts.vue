@@ -4,8 +4,8 @@
     <div class="navbar">
       <div class="navbar-title">联系人</div>
       <div class="navbar-right">
-        <button class="btn-icon" @click="showAddFriend = true">
-          <i class="el-icon-plus"></i>
+        <button class="btn btn-primary btn-sm btn-compact" @click="showAddFriend = true">
+          加好友
         </button>
       </div>
     </div>
@@ -194,7 +194,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -229,7 +229,10 @@ export default {
     });
     
     // 从store获取数据
-    const friends = computed(() => store.state.friendship.friends);
+    const friends = computed(() => {
+      // 强制计算属性重新计算
+      return [...store.state.friendship.friends];
+    });
     const friendGroups = computed(() => store.state.friendship.friendGroups);
     
     // 根据分组组织好友列表
@@ -350,7 +353,13 @@ export default {
         };
         
         // 重新获取好友列表
-        store.dispatch('friendship/getFriends');
+        await store.dispatch('friendship/getFriends');
+        
+        // 打印好友列表，检查是否更新
+        console.log('添加好友后的好友列表:', store.state.friendship.friends);
+        
+        // 确保页面重新渲染
+        await nextTick();
       } catch (error) {
         ElMessage.error('添加好友失败');
       }

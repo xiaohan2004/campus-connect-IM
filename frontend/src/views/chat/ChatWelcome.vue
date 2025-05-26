@@ -3,7 +3,7 @@
     <img src="@/assets/chat-illustration.png" alt="Welcome" class="welcome-image" />
     <h2>欢迎使用校园即时通讯</h2>
     <p>选择一个会话开始聊天，或者创建新的会话</p>
-    <button class="btn btn-primary" @click="$parent.showAddConversation = true">
+    <button class="btn btn-primary" @click="openNewConversation">
       开始新的对话
     </button>
   </div>
@@ -11,7 +11,17 @@
 
 <script>
 export default {
-  name: 'ChatWelcome'
+  name: 'ChatWelcome',
+  emits: ['open-new-conversation'],
+  setup(props, { emit }) {
+    const openNewConversation = () => {
+      emit('open-new-conversation');
+    };
+    
+    return {
+      openNewConversation
+    };
+  }
 };
 </script>
 
