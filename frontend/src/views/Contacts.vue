@@ -42,7 +42,7 @@
           <div v-if="expandedGroups.includes(group.id)" class="group-content">
             <div
               v-for="friend in group.friends"
-              :key="friend.friendId"
+              :key="friend.id"
               class="friend-item"
               @click="startChat(friend)"
             >
@@ -54,10 +54,11 @@
                   {{ friend.status === 0 ? '在线' : '离线' }}
                 </p>
               </div>
-              <div class="friend-actions">
+              <div class="friend-actions" @click.stop>
                 <el-dropdown trigger="click" @command="(command) => handleFriendAction(command, friend)">
-                  <button class="btn-icon">
+                  <button class="btn btn-primary btn-sm btn-compact">
                     <i class="el-icon-more"></i>
+                    <span>操作</span>
                   </button>
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -106,9 +107,9 @@
           <el-select v-model="addFriendForm.groupId" placeholder="请选择分组" style="width: 100%">
             <el-option
               v-for="group in friendGroups"
-              :key="group.id"
-              :label="group.name"
-              :value="group.id"
+              :key="group.id || ''"
+              :label="group.name || '未命名分组'"
+              :value="Number(group.id) || 0"
             ></el-option>
           </el-select>
         </div>
@@ -160,9 +161,9 @@
           <el-select v-model="moveGroupForm.groupId" placeholder="请选择分组" style="width: 100%">
             <el-option
               v-for="group in friendGroups"
-              :key="group.id"
-              :label="group.name"
-              :value="group.id"
+              :key="group.id || ''"
+              :label="group.name || '未命名分组'"
+              :value="Number(group.id) || 0"
             ></el-option>
           </el-select>
         </div>
@@ -275,12 +276,20 @@ export default {
     // 开始聊天
     const startChat = async (friend) => {
       try {
+        // 确保 targetUserId 是有效的数字
+        const targetUserId = parseInt(friend.id, 10);
+        if (isNaN(targetUserId)) {
+          ElMessage.warning('无效的联系人ID');
+          return;
+        }
+        
         const conversation = await store.dispatch(
           'conversation/createPrivateConversation',
-          friend.friendId
+          { targetUserId }
         );
-        router.push(`/chat/conversation/${conversation.conversationId}`);
+        router.push(`/chat/conversation/${conversation.id}`);
       } catch (error) {
+        console.error('创建会话失败:', error);
         ElMessage.error('创建会话失败');
       }
     };
@@ -293,14 +302,14 @@ export default {
           break;
         case 'remark':
           editRemarkForm.value = {
-            friendId: friend.friendId,
+            friendId: friend.id,
             remark: friend.remark || friend.nickname
           };
           showEditRemark.value = true;
           break;
         case 'move':
           moveGroupForm.value = {
-            friendId: friend.friendId,
+            friendId: friend.id,
             groupId: friend.groupId || 0
           };
           showMoveGroup.value = true;
@@ -311,7 +320,7 @@ export default {
             cancelButtonText: '取消',
             type: 'warning'
           }).then(() => {
-            handleDeleteFriend(friend.friendId);
+            handleDeleteFriend(friend.id);
           }).catch(() => {
             // 用户取消操作
           });
@@ -327,10 +336,12 @@ export default {
       }
       
       try {
+        console.log('开始查询用户，手机号:', addFriendForm.value.phone);
         // 先查询用户是否存在
         const userInfo = await store.dispatch('user/getUserByPhone', addFriendForm.value.phone);
+        console.log('查询到的用户信息:', userInfo);
         
-        if (!userInfo) {
+        if (!userInfo || !userInfo.id) {
           ElMessage.error('用户不存在');
           return;
         }
@@ -361,7 +372,8 @@ export default {
         // 确保页面重新渲染
         await nextTick();
       } catch (error) {
-        ElMessage.error('添加好友失败');
+        console.error('添加好友失败:', error);
+        ElMessage.error(`添加好友失败: ${error.message || '未知错误'}`);
       }
     };
     
@@ -581,6 +593,16 @@ export default {
       }
     }
   }
+  
+  .friend-actions {
+    margin-left: $spacing-2;
+    
+    @media (max-width: 576px) {
+      .btn span {
+        display: none;
+      }
+    }
+  }
 }
 
 .form-group {
@@ -624,5 +646,28 @@ export default {
   left: 0;
   right: 0;
   z-index: 100;
+}
+
+.friend-actions {
+  position: relative;
+  
+  .el-dropdown {
+    display: inline-block;
+  }
+  
+  .btn {
+    white-space: nowrap;
+    margin-left: $spacing-2;
+  }
+  
+  .el-popper {
+    z-index: 2000;
+  }
+}
+
+.el-dropdown-menu {
+  box-shadow: $shadow;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
 }
 </style> 

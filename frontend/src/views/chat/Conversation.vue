@@ -3,15 +3,17 @@
     <!-- 导航栏 -->
     <div class="navbar">
       <div class="navbar-left">
-        <button class="btn-icon" @click="handleBack" v-if="isMobile">
+        <button class="btn btn-primary btn-sm btn-compact" @click="handleBack" v-if="isMobile">
           <i class="el-icon-arrow-left"></i>
+          <span>返回</span>
         </button>
       </div>
       <div class="navbar-title">{{ conversationTitle }}</div>
       <div class="navbar-right">
         <el-dropdown trigger="click" @command="handleCommand">
-          <button class="btn-icon">
+          <button class="btn btn-primary btn-sm btn-compact">
             <i class="el-icon-more"></i>
+            <span>更多</span>
           </button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -95,8 +97,8 @@
 
     <!-- 输入工具栏 -->
     <div class="toolbar">
-      <button class="toolbar-btn">
-        <i class="el-icon-picture"></i>
+      <button class="btn btn-primary btn-sm btn-compact">
+        <span>文件</span>
       </button>
       <textarea
         class="toolbar-input"
@@ -104,8 +106,12 @@
         placeholder="输入消息..."
         @keydown.enter.prevent="sendMessage"
       ></textarea>
-      <button class="toolbar-btn" @click="sendMessage" :disabled="!messageInput.trim()">
-        <i class="el-icon-position"></i>
+      <button 
+        class="btn btn-primary btn-sm btn-compact" 
+        @click="sendMessage" 
+        :disabled="!messageInput.trim()"
+      >
+        发送
       </button>
     </div>
 
@@ -172,8 +178,29 @@ export default {
       const conversationId = Number(props.id);
       return store.state.message.messages[conversationId] || [];
     });
+    const friends = computed(() => store.state.friendship.friends || []);
+    const groups = computed(() => store.state.group.groups || []);
     
-    const conversationTitle = computed(() => conversation.value?.title || '会话');
+    const conversationTitle = computed(() => {
+      if (!conversation.value) return '会话';
+      
+      // 根据会话类型显示不同的标题
+      if (conversation.value.conversationType === 1) {
+        // 群聊 - 尝试从群组列表中获取更详细的信息
+        const group = groups.value.find(g => Number(g.id) === Number(conversation.value.targetId));
+        if (group) {
+          return group.name || conversation.value.title || '群聊';
+        }
+        return conversation.value.title || '群聊';
+      } else {
+        // 私聊 - 尝试从好友列表中获取更详细的信息
+        const friend = friends.value.find(f => Number(f.id) === Number(conversation.value.targetId));
+        if (friend) {
+          return friend.nickname || friend.remark || conversation.value.title || '私聊';
+        }
+        return conversation.value.title || '私聊';
+      }
+    });
     const isTop = computed(() => conversation.value?.isTop || false);
     const isMuted = computed(() => conversation.value?.isMuted || false);
     
@@ -190,19 +217,30 @@ export default {
         // 获取会话详情
         await store.dispatch('conversation/getConversationDetail', conversationId);
         
+        console.log('获取到的会话详情:', conversation.value);
+        
         // 根据会话类型获取消息
         if (conversation.value) {
-          if (conversation.value.isGroup) {
+          // 检查 conversation.value.isGroup 是否存在
+          console.log('会话类型:', conversation.value.conversationType);
+          
+          // 根据 conversationType 判断是否为群聊
+          // 假设 conversationType = 1 表示群聊，conversationType = 0 表示私聊
+          const isGroup = conversation.value.conversationType === 1;
+          
+          if (isGroup) {
+            console.log('这是群聊会话，群组ID:', conversation.value.targetId);
             // 群聊消息
             await store.dispatch('message/getGroupMessages', {
               conversationId,
-              groupId: conversation.value.groupId
+              groupId: conversation.value.targetId // 使用 targetId 作为 groupId
             });
           } else {
+            console.log('这是私聊会话，对方ID:', conversation.value.targetId);
             // 私聊消息
             await store.dispatch('message/getPrivateMessages', {
               conversationId,
-              otherPhone: conversation.value.otherPhone
+              otherUserId: conversation.value.targetId // 使用 targetId 作为对方用户ID
             });
           }
           
@@ -212,10 +250,12 @@ export default {
           // 滚动到底部
           await nextTick();
           scrollToBottom();
+        } else {
+          console.error('会话详情为空');
         }
       } catch (error) {
         ElMessage.error('获取会话数据失败');
-        console.error(error);
+        console.error('获取会话数据错误:', error);
       }
     };
     
@@ -227,17 +267,30 @@ export default {
       messageInput.value = '';
       
       try {
-        if (conversation.value.isGroup) {
+        console.log('发送消息，会话信息:', conversation.value);
+        
+        if (!conversation.value) {
+          console.error('会话信息为空，无法发送消息');
+          ElMessage.error('会话信息获取失败，请刷新页面重试');
+          return;
+        }
+        
+        // 根据 conversationType 判断是否为群聊
+        const isGroup = conversation.value.conversationType === 1;
+        
+        if (isGroup) {
+          console.log('发送群聊消息，群组ID:', conversation.value.targetId);
           // 发送群聊消息
           await store.dispatch('message/sendGroupMessage', {
-            groupId: conversation.value.groupId,
+            groupId: conversation.value.targetId,
             contentType: 1, // 文本消息
             content
           });
         } else {
+          console.log('发送私聊消息，对方ID:', conversation.value.targetId);
           // 发送私聊消息
           await store.dispatch('message/sendPrivateMessage', {
-            receiverPhone: conversation.value.otherPhone,
+            receiverId: conversation.value.targetId,
             contentType: 1, // 文本消息
             content
           });
@@ -248,7 +301,7 @@ export default {
         scrollToBottom();
       } catch (error) {
         ElMessage.error('发送消息失败');
-        console.error(error);
+        console.error('发送消息错误:', error);
       }
     };
     
@@ -408,6 +461,9 @@ export default {
     
     onMounted(() => {
       window.addEventListener('resize', handleResize);
+      // 获取好友和群组列表
+      store.dispatch('friendship/getFriends');
+      store.dispatch('group/getGroups');
       fetchConversationData();
     });
     
@@ -458,6 +514,55 @@ export default {
   height: 100%;
   background-color: $bg-secondary;
   padding-bottom: 55px; /* 为底部导航栏留出空间 */
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: $spacing-3;
+  background-color: $white;
+  border-top: 1px solid $border-color;
+  
+  .toolbar-btn {
+    padding: $spacing-2;
+    border-radius: $border-radius;
+    color: $text-secondary;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    
+    &:hover {
+      background-color: $gray-100;
+    }
+    
+    &:disabled {
+      color: $text-muted;
+      cursor: not-allowed;
+    }
+    
+    i {
+      font-size: $font-size-lg;
+    }
+  }
+  
+  .toolbar-input {
+    flex: 1;
+    border: none;
+    padding: $spacing-3;
+    margin: 0 $spacing-2;
+    border-radius: $border-radius;
+    background-color: $gray-100;
+    resize: none;
+    height: 40px;
+    max-height: 120px;
+    
+    &:focus {
+      outline: none;
+      background-color: $gray-200;
+    }
+  }
 }
 
 .message-list {

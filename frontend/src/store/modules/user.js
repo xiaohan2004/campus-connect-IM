@@ -115,12 +115,15 @@ const actions = {
   // 根据手机号获取用户信息
   getUserByPhone({ commit }, phone) {
     return new Promise((resolve, reject) => {
+      console.log('调用 getUserByPhone action，手机号:', phone);
       getUserByPhone(phone)
         .then(response => {
           const { data } = response;
+          console.log('getUserByPhone 返回数据:', data);
           resolve(data);
         })
         .catch(error => {
+          console.error('getUserByPhone 错误:', error);
           reject(error);
         });
     });
