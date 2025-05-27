@@ -54,6 +54,7 @@ export function updateFriendStatus(data) {
 
 // 获取好友关系
 export function getFriendship(friendId) {
+  console.log(`API调用: 获取好友关系，friendId=${friendId}`);
   return request({
     url: `/api/friendship/${friendId}`,
     method: 'get'

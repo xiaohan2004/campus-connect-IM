@@ -195,8 +195,12 @@ export default {
       } else {
         // 私聊 - 尝试从好友列表中获取更详细的信息
         const friend = friends.value.find(f => Number(f.id) === Number(conversation.value.targetId));
+        console.log('Conversation.vue - 找到的好友信息:', friend);
         if (friend) {
-          return friend.nickname || friend.remark || conversation.value.title || '私聊';
+          // 检查好友对象是否包含remark字段
+          console.log('Conversation.vue - 好友备注名:', friend.remark);
+          // 优先显示备注名，如果没有备注名再显示昵称
+          return friend.remark || friend.nickname || conversation.value.title || '私聊';
         }
         return conversation.value.title || '私聊';
       }
@@ -462,7 +466,7 @@ export default {
     onMounted(() => {
       window.addEventListener('resize', handleResize);
       // 获取好友和群组列表
-      store.dispatch('friendship/getFriends');
+      store.dispatch('friendship/getFriendsWithDetails');
       store.dispatch('group/getGroups');
       fetchConversationData();
     });

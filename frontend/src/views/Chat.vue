@@ -85,7 +85,7 @@
               <el-option
                 v-for="friend in friends"
                 :key="friend.id"
-                :label="friend.nickname"
+                :label="friend.remark || friend.nickname"
                 :value="Number(friend.id)"
               ></el-option>
             </el-select>
@@ -175,7 +175,7 @@
             <el-option
               v-for="friend in friends"
               :key="friend.id"
-              :label="friend.nickname"
+              :label="friend.remark || friend.nickname"
               :value="Number(friend.id)"
             ></el-option>
           </el-select>
@@ -257,8 +257,12 @@ export default {
       } else {
         // 私聊 - 尝试从好友列表中获取更详细的信息
         const friend = friends.value.find(f => Number(f.id) === Number(conversation.targetId));
+        console.log('找到的好友信息:', friend);
         if (friend) {
-          return `${friend.nickname || friend.remark || conversation.title || '未知联系人'} (私聊)`;
+          // 检查好友对象是否包含remark字段
+          console.log('好友备注名:', friend.remark);
+          // 优先显示备注名，如果没有备注名再显示昵称
+          return `${friend.remark || friend.nickname || conversation.title || '未知联系人'} (私聊)`;
         }
         return `${conversation.title || '未知联系人'} (私聊)`;
       }
@@ -319,7 +323,7 @@ export default {
       if (isLoggedIn.value) {
         store.dispatch('conversation/getConversations');
         store.dispatch('group/getGroups');
-        store.dispatch('friendship/getFriends');
+        store.dispatch('friendship/getFriendsWithDetails');
       }
     });
 

@@ -48,7 +48,7 @@
             >
               <img :src="friend.avatar || defaultAvatar" class="avatar" alt="头像" />
               <div class="friend-info">
-                <h3 class="friend-name">{{ friend.nickname }}</h3>
+                <h3 class="friend-name">{{ friend.remark || friend.nickname }}</h3>
                 <p class="friend-status">
                   <span class="status-dot" :class="{ 'online': friend.status === 0 }"></span>
                   {{ friend.status === 0 ? '在线' : '离线' }}
@@ -232,7 +232,13 @@ export default {
     // 从store获取数据
     const friends = computed(() => {
       // 强制计算属性重新计算
-      return [...store.state.friendship.friends];
+      const friendsList = [...store.state.friendship.friends];
+      console.log('Contacts.vue - 好友列表:', friendsList);
+      if (friendsList.length > 0) {
+        console.log('Contacts.vue - 第一个好友:', friendsList[0]);
+        console.log('Contacts.vue - 好友备注字段:', friendsList[0].remark);
+      }
+      return friendsList;
     });
     const friendGroups = computed(() => store.state.friendship.friendGroups);
     
@@ -246,6 +252,7 @@ export default {
       // 根据搜索条件过滤好友
       const filteredFriends = friends.value.filter(friend => 
         !searchQuery.value || 
+        (friend.remark && friend.remark.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
         friend.nickname.toLowerCase().includes(searchQuery.value.toLowerCase())
       );
       
@@ -315,7 +322,7 @@ export default {
           showMoveGroup.value = true;
           break;
         case 'delete':
-          ElMessageBox.confirm(`确定要删除好友 ${friend.nickname} 吗？`, '删除好友', {
+          ElMessageBox.confirm(`确定要删除好友 ${friend.remark || friend.nickname} 吗？`, '删除好友', {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
             type: 'warning'
@@ -364,7 +371,7 @@ export default {
         };
         
         // 重新获取好友列表
-        await store.dispatch('friendship/getFriends');
+        await store.dispatch('friendship/getFriendsWithDetails');
         
         // 打印好友列表，检查是否更新
         console.log('添加好友后的好友列表:', store.state.friendship.friends);
@@ -423,7 +430,7 @@ export default {
     
     onMounted(() => {
       // 获取好友列表
-      store.dispatch('friendship/getFriends');
+      store.dispatch('friendship/getFriendsWithDetails');
     });
     
     return {
