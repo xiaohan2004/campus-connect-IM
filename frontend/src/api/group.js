@@ -34,21 +34,21 @@ export function getGroupInfo(groupId) {
   });
 }
 
-// 添加群成员
-export function addGroupMember(groupId, userId) {
+// 添加群成员（单个）
+export function addGroupMember(groupId, data) {
   return request({
     url: `/api/group/${groupId}/member`,
     method: 'post',
-    data: { userId }
+    data
   });
 }
 
-// 批量添加群成员
-export function addGroupMembers(groupId, userIds) {
+// 添加群成员（批量）
+export function addGroupMembers(groupId, data) {
   return request({
     url: `/api/group/${groupId}/members`,
     method: 'post',
-    data: { userIds }
+    data
   });
 }
 
@@ -60,7 +60,7 @@ export function removeGroupMember(groupId, userId) {
   });
 }
 
-// 退出群组
+// 用户主动退出群组
 export function quitGroup(groupId) {
   return request({
     url: `/api/group/${groupId}/quit`,
@@ -69,33 +69,33 @@ export function quitGroup(groupId) {
 }
 
 // 设置群成员角色
-export function setGroupMemberRole(groupId, userId, role) {
+export function setGroupMemberRole(groupId, userId, data) {
   return request({
     url: `/api/group/${groupId}/member/${userId}/role`,
     method: 'put',
-    data: { role }
+    data
   });
 }
 
-// 设置群成员昵称
-export function setGroupMemberNickname(groupId, nickname) {
+// 设置群内昵称
+export function setGroupMemberNickname(groupId, data) {
   return request({
     url: `/api/group/${groupId}/nickname`,
     method: 'put',
-    data: { nickname }
+    data
   });
 }
 
 // 禁言群成员
-export function muteGroupMember(groupId, userId, duration) {
+export function muteGroupMember(groupId, userId, data) {
   return request({
     url: `/api/group/${groupId}/member/${userId}/mute`,
     method: 'put',
-    data: { duration }
+    data
   });
 }
 
-// 解除群成员禁言
+// 取消禁言
 export function unmuteGroupMember(groupId, userId) {
   return request({
     url: `/api/group/${groupId}/member/${userId}/unmute`,
@@ -103,7 +103,7 @@ export function unmuteGroupMember(groupId, userId) {
   });
 }
 
-// 获取群成员列表
+// 获取群成员列表（含角色、昵称等）
 export function getGroupMembers(groupId) {
   return request({
     url: `/api/group/${groupId}/members`,
@@ -111,7 +111,7 @@ export function getGroupMembers(groupId) {
   });
 }
 
-// 获取群成员用户信息列表
+// 获取群成员用户信息列表（只返回 User 信息）
 export function getGroupMemberUsers(groupId) {
   return request({
     url: `/api/group/${groupId}/users`,
@@ -119,7 +119,7 @@ export function getGroupMemberUsers(groupId) {
   });
 }
 
-// 获取用户加入的群组列表
+// 获取当前用户加入的所有群组
 export function getUserGroups() {
   return request({
     url: '/api/group/my',
@@ -127,7 +127,7 @@ export function getUserGroups() {
   });
 }
 
-// 检查用户是否在群组中
+// 检查当前用户是否在指定群组中
 export function checkUserInGroup(groupId) {
   return request({
     url: `/api/group/${groupId}/check`,

@@ -74,7 +74,7 @@
     <!-- 根据用户ID查询所属群组 -->
     <select id="selectByUserId" resultMap="BaseResultMap">
         SELECT
-        g.<include refid="Base_Column_List"/>
+        g.id, g.name, g.avatar, g.creator_id, g.description, g.announcement, g.member_count, g.max_member_count, g.status, g.created_at, g.updated_at
         FROM chat_group g
         JOIN group_member m ON g.id = m.group_id
         WHERE m.user_id = #{userId} AND g.status != 2

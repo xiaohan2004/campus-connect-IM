@@ -104,7 +104,8 @@
     <update id="updateLastMessage">
         UPDATE conversation c, message m
         SET c.last_message_id = #{messageId},
-            c.last_message_time = m.send_time
+            c.last_message_time = m.send_time,
+            c.updated_at = NOW()
         WHERE c.id = #{id}
           AND m.id = #{messageId}
     </update>
