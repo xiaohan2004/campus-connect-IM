@@ -13,6 +13,18 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Register.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/chat',
     name: 'Chat',
     component: () => import('@/views/Chat.vue'),
@@ -64,8 +76,8 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isLoggedIn) {
     next('/login');
   } 
-  // 如果已登录但访问登录页，重定向到聊天页
-  else if (isLoggedIn && to.path === '/login') {
+  // 如果已登录但访问登录页、注册页或找回密码页，重定向到聊天页
+  else if (isLoggedIn && (to.path === '/login' || to.path === '/register' || to.path === '/reset-password')) {
     next('/chat');
   } 
   // 其他情况正常导航

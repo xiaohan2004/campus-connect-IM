@@ -32,6 +32,11 @@
       <button class="btn btn-primary btn-login" @click="handleLogin" :disabled="loading">
         {{ loading ? '登录中...' : '登录' }}
       </button>
+      
+      <div class="login-options">
+        <router-link to="/register" class="login-link">注册账号</router-link>
+        <router-link to="/reset-password" class="login-link">忘记密码？</router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -181,6 +186,22 @@ export default {
     font-size: $font-size-base;
     font-weight: $font-weight-medium;
     margin-top: $spacing-4;
+  }
+  
+  .login-options {
+    display: flex;
+    justify-content: space-between;
+    margin-top: $spacing-4;
+    
+    .login-link {
+      color: $primary-color;
+      font-size: $font-size-sm;
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }
 </style> 
