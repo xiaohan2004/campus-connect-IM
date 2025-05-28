@@ -3,14 +3,19 @@ package com.campus.im.controller;
 import com.campus.im.common.constant.JwtConstant;
 import com.campus.im.common.Result;
 import com.campus.im.common.enumeration.ResultCode;
+import com.campus.im.dto.RegisterDTO;
+import com.campus.im.dto.ResetPasswordDTO;
 import com.campus.im.entity.User;
 import com.campus.im.service.UserService;
+import com.campus.im.util.EmailUtil;
 import com.campus.im.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,6 +30,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 登录控制器
@@ -39,8 +45,20 @@ public class LoginController {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("${app.login.url}")
-    private String externalAuthApiUrl;
+    @Autowired
+    private EmailUtil emailUtil;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Value("${app.url.login}")
+    private String externalLoginUrl;
+    @Value("${app.url.register}")
+    private String externalRegisterUrl;
+    @Value("${app.url.change-password}")
+    private String externalChangePasswordUrl;
+    @Value("${app.url.get-goods-by-phone}")
+    private String externalGetGoodsByPhoneUrl;
 
     /**
      * 用户登录
@@ -69,7 +87,7 @@ public class LoginController {
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             // 发送请求到外部认证API
-            ResponseEntity<Map> response = restTemplate.postForEntity(externalAuthApiUrl, requestEntity, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(externalLoginUrl, requestEntity, Map.class);
             Map<String, Object> responseBody = response.getBody();
 
             // 验证外部API返回的结果
@@ -141,4 +159,119 @@ public class LoginController {
             return Result.error(ResultCode.ERROR, "登录失败: " + e.getMessage());
         }
     }
+
+    @PostMapping("/register")
+    public Result register(@RequestBody RegisterDTO registerDTO) {
+        // 参数校验
+        if (registerDTO == null
+                || !StringUtils.hasText(registerDTO.getPhone())
+                || !StringUtils.hasText(registerDTO.getPassword())
+                || !StringUtils.hasText(registerDTO.getEmail())
+                || !StringUtils.hasText(registerDTO.getNickname())
+                || registerDTO.getUserType() == null) {
+            return Result.error(ResultCode.PARAM_ERROR, "注册信息不完整");
+        }
+
+        // 检查手机号是否已注册
+        User existingUser = userService.getUserByPhone(registerDTO.getPhone());
+        if (existingUser != null) {
+            return Result.error(ResultCode.ERROR, "手机号已被注册");
+        }
+
+        // 检查验证码是否正确
+        String redisKey = "email:code:register:" + registerDTO.getEmail();
+        String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
+        if (cachedCode == null || !cachedCode.equals(registerDTO.getVerificationCode())) {
+            return Result.error(ResultCode.PARAM_ERROR, "验证码错误或已过期");
+        }
+
+        // 请求外部API
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("permission", registerDTO.getUserType());
+        requestBody.put("phone", registerDTO.getPhone());
+        requestBody.put("password", registerDTO.getPassword());
+        requestBody.put("wallet", 0);
+        requestBody.put("nickname", registerDTO.getNickname());
+        requestBody.put("email", registerDTO.getEmail());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(externalRegisterUrl, requestEntity, Map.class);
+        Map<String, Object> responseBody = response.getBody();
+        if (responseBody == null || !responseBody.get("msg").equals("success")) {
+            return Result.error(ResultCode.ERROR, "外部注册服务失败");
+        }
+
+        // 创建新用户
+        User newUser = new User();
+        newUser.setPhone(registerDTO.getPhone());
+        newUser.setNickname(registerDTO.getNickname());
+        newUser.setStatus(0); // 正常状态
+
+        LocalDateTime now = LocalDateTime.now();
+        newUser.setCreatedAt(now);
+        newUser.setUpdatedAt(now);
+        newUser.setLastActiveTime(now);
+
+        boolean success = userService.createUser(newUser);
+        if (!success) {
+            return Result.error("用户注册失败");
+        }
+
+        return Result.success("注册成功");
+    }
+
+    @PostMapping("/resetPassword")
+    public Result resetPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
+        // 参数校验
+        if (resetPasswordDTO == null
+                || !StringUtils.hasText(resetPasswordDTO.getPhone())
+                || !StringUtils.hasText(resetPasswordDTO.getEmail())
+                || !StringUtils.hasText(resetPasswordDTO.getVerificationCode())
+                || !StringUtils.hasText(resetPasswordDTO.getNewPassword())) {
+            return Result.error(ResultCode.PARAM_ERROR, "重置密码信息不完整");
+        }
+
+        // 检查验证码是否正确
+        String redisKey = "email:code:reset:" + resetPasswordDTO.getEmail();
+        String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
+        if (cachedCode == null || !cachedCode.equals(resetPasswordDTO.getVerificationCode())) {
+            return Result.error(ResultCode.PARAM_ERROR, "验证码错误或已过期");
+        }
+
+        // 请求外部API重置密码
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("phone", resetPasswordDTO.getPhone());
+        requestBody.put("password", resetPasswordDTO.getNewPassword());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(externalChangePasswordUrl, requestEntity, Map.class);
+        Map<String, Object> responseBody = response.getBody();
+        if (responseBody == null || !responseBody.get("msg").equals("success")) {
+            return Result.error(ResultCode.ERROR, "外部服务重置密码失败");
+        }
+
+        return Result.success("密码重置成功");
+    }
+
+    @PostMapping("/sendVerificationCode")
+    public Result sendVerificationCode(@RequestBody Map<String, String> params) {
+        String email = params.get("email");
+        String type = params.get("type");
+
+        // 1. 生成并发送验证码
+        String code = emailUtil.sendVerificationCode(email, type);
+
+        // 2. 构造 Redis key（建议加上类型区分）
+        String redisKey = "email:code:" + type + ":" + email;
+
+        // 3. 缓存到 Redis，有效期 3 分钟
+        stringRedisTemplate.opsForValue().set(redisKey, code, 3, TimeUnit.MINUTES);
+
+        return Result.success("验证码已发送");
+    }
+
 }

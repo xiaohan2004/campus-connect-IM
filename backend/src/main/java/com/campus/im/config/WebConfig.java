@@ -15,7 +15,7 @@ import java.io.File;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    
+
     /**
      * 跨域配置
      */
@@ -29,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true) // 是否允许带认证信息
                 .maxAge(3600); // 预检请求的缓存时间
     }
-    
+
     /**
      * 静态资源映射
      */
@@ -40,7 +40,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/upload/**")
                 .addResourceLocations("file:" + uploadPath);
     }
-    
+
     /**
      * 登录拦截器
      */
@@ -48,7 +48,7 @@ public class WebConfig implements WebMvcConfigurer {
     public LoginInterceptor loginInterceptor() {
         return new LoginInterceptor();
     }
-    
+
     /**
      * 添加拦截器
      */
@@ -57,6 +57,6 @@ public class WebConfig implements WebMvcConfigurer {
         // 登录拦截器
         registry.addInterceptor(loginInterceptor())
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/login", "/upload/**", "/api/websocket/**");
+                .excludePathPatterns("/api/login", "/api/register", "/api/forgetPassword", "/api/sendVerificationCode", "/upload/**", "/api/websocket/**");
     }
 } 

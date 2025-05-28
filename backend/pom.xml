@@ -126,6 +126,14 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!--   邮件服务    -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>alibabacloud-dm20151123</artifactId>
+            <version>1.0.19</version>
+        </dependency>
+
     </dependencies>
     
     <build>
