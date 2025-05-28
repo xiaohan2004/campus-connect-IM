@@ -69,7 +69,7 @@ export function login(data) {
  */
 export function register(data) {
   return request({
-    url: '/api/user/register',
+    url: '/api/register',
     method: 'post',
     data
   });
@@ -100,7 +100,7 @@ export function sendSmsCode(phone, type = 'register') {
  */
 export function sendEmailCode(email, type = 'register') {
   return request({
-    url: '/api/user/sendVerificationCode',
+    url: '/api/sendVerificationCode',
     method: 'post',
     data: {
       email,
@@ -120,7 +120,7 @@ export function sendEmailCode(email, type = 'register') {
  */
 export function resetPassword(data) {
   return request({
-    url: '/api/user/resetPassword',
+    url: '/api/resetPassword',
     method: 'post',
     data
   });
