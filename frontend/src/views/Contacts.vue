@@ -297,7 +297,9 @@ export default {
         router.push(`/chat/conversation/${conversation.id}`);
       } catch (error) {
         console.error('创建会话失败:', error);
-        ElMessage.error('创建会话失败');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '创建会话失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -380,7 +382,9 @@ export default {
         await nextTick();
       } catch (error) {
         console.error('添加好友失败:', error);
-        ElMessage.error(`添加好友失败: ${error.message || '未知错误'}`);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '添加好友失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -397,7 +401,10 @@ export default {
         ElMessage.success('修改备注成功');
         showEditRemark.value = false;
       } catch (error) {
-        ElMessage.error('修改备注失败');
+        console.error('修改备注失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '修改备注失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -414,7 +421,10 @@ export default {
         ElMessage.success('移动分组成功');
         showMoveGroup.value = false;
       } catch (error) {
-        ElMessage.error('移动分组失败');
+        console.error('移动分组失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '移动分组失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -424,7 +434,10 @@ export default {
         await store.dispatch('friendship/deleteFriend', friendId);
         ElMessage.success('删除好友成功');
       } catch (error) {
-        ElMessage.error('删除好友失败');
+        console.error('删除好友失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '删除好友失败';
+        ElMessage.error(errorMsg);
       }
     };
     

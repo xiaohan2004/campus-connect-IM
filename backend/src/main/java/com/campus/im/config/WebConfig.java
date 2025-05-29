@@ -57,6 +57,6 @@ public class WebConfig implements WebMvcConfigurer {
         // 登录拦截器
         registry.addInterceptor(loginInterceptor())
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/login", "/api/register", "/api/forgetPassword", "/api/sendVerificationCode", "/upload/**", "/api/websocket/**");
+                .excludePathPatterns("/api/login", "/api/register", "/api/resetPassword", "/api/sendVerificationCode", "/upload/**", "/api/websocket/**");
     }
 } 

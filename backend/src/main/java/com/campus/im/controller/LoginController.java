@@ -193,6 +193,7 @@ public class LoginController {
         requestBody.put("wallet", 0);
         requestBody.put("nickname", registerDTO.getNickname());
         requestBody.put("email", registerDTO.getEmail());
+        requestBody.put("gender",0);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

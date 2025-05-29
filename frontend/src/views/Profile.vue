@@ -220,7 +220,10 @@ export default {
         // 重新获取用户信息
         store.dispatch('user/getUserInfo');
       } catch (error) {
-        ElMessage.error('修改失败');
+        console.error('修改昵称失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '修改失败';
+        ElMessage.error(errorMsg);
       }
     };
     

@@ -100,7 +100,9 @@ export default {
         router.push('/chat');
       } catch (error) {
         console.error('登录失败:', error);
-        ElMessage.error(error.message || '登录失败，请检查账号密码');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '登录失败，请检查账号密码';
+        ElMessage.error(errorMsg);
       } finally {
         loading.value = false;
       }

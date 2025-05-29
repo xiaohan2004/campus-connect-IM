@@ -60,7 +60,7 @@ export function login(data) {
  * 用户注册
  * @param {Object} data - 注册信息
  * @param {String} data.nickname - 昵称
- * @param {String} data.userType - 用户身份(STUDENT-校内用户, MERCHANT-商家)
+ * @param {String} data.userType - 用户身份(1-校内用户, 2-商家)
  * @param {String} data.phone - 手机号
  * @param {String} data.email - 邮箱
  * @param {String} data.verificationCode - 验证码

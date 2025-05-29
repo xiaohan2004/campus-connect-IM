@@ -90,7 +90,7 @@
               <input 
                 type="radio" 
                 id="userType1" 
-                value="STUDENT" 
+                :value="1" 
                 v-model="form.userType"
               />
               <label for="userType1">校内用户</label>
@@ -99,7 +99,7 @@
               <input 
                 type="radio" 
                 id="userType2" 
-                value="MERCHANT" 
+                :value="2" 
                 v-model="form.userType"
               />
               <label for="userType2">商家</label>
@@ -135,7 +135,7 @@ export default {
     const cooldown = ref(0);
     const form = reactive({
       nickname: '',
-      userType: 'STUDENT', // 默认为校内用户
+      userType: 1, // 默认为校内用户
       phone: '',
       email: '',
       code: '',
@@ -152,7 +152,7 @@ export default {
       }
       
       // 校内用户邮箱必须以@st.usst.edu.cn结尾
-      if (form.userType === 'STUDENT') {
+      if (form.userType === 1) {
         const studentEmailRegex = /@st\.usst\.edu\.cn$/;
         if (!studentEmailRegex.test(form.email)) {
           ElMessage.warning('校内用户邮箱必须以@st.usst.edu.cn结尾');
@@ -181,7 +181,9 @@ export default {
         }, 1000);
       } catch (error) {
         console.error('发送验证码失败:', error);
-        ElMessage.error(error.message || '发送验证码失败，请稍后重试');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '发送验证码失败，请稍后重试';
+        ElMessage.error(errorMsg);
       }
     };
 
@@ -203,7 +205,7 @@ export default {
         return;
       }
       
-      const phoneRegex = /^1[3-9]\d{9}$/;
+      const phoneRegex = /^\d{11}$/;
       if (!phoneRegex.test(form.phone)) {
         ElMessage.warning('请输入正确的手机号');
         return;
@@ -215,7 +217,7 @@ export default {
       }
       
       // 校内用户邮箱必须以@st.usst.edu.cn结尾
-      if (form.userType === 'STUDENT') {
+      if (form.userType === 1) {
         const studentEmailRegex = /@st\.usst\.edu\.cn$/;
         if (!studentEmailRegex.test(form.email)) {
           ElMessage.warning('校内用户邮箱必须以@st.usst.edu.cn结尾');
@@ -265,7 +267,9 @@ export default {
         router.push('/login');
       } catch (error) {
         console.error('注册失败:', error);
-        ElMessage.error(error.message || '注册失败，请稍后重试');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '注册失败，请稍后重试';
+        ElMessage.error(errorMsg);
       } finally {
         loading.value = false;
       }

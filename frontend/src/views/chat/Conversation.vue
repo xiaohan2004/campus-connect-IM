@@ -258,8 +258,10 @@ export default {
           console.error('会话详情为空');
         }
       } catch (error) {
-        ElMessage.error('获取会话数据失败');
         console.error('获取会话数据错误:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '获取会话数据失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -304,8 +306,10 @@ export default {
         await nextTick();
         scrollToBottom();
       } catch (error) {
-        ElMessage.error('发送消息失败');
         console.error('发送消息错误:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '发送消息失败';
+        ElMessage.error(errorMsg);
       }
     };
     
@@ -347,7 +351,10 @@ export default {
             });
             ElMessage.success(isMuted.value ? '已取消免打扰' : '已设置为免打扰');
           } catch (error) {
-            ElMessage.error('操作失败');
+            console.error('操作失败:', error);
+            // 优先使用后端返回的错误信息
+            const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '操作失败';
+            ElMessage.error(errorMsg);
           }
           break;
         case 'top':
@@ -358,7 +365,10 @@ export default {
             });
             ElMessage.success(isTop.value ? '已取消置顶' : '已设置为置顶');
           } catch (error) {
-            ElMessage.error('操作失败');
+            console.error('操作失败:', error);
+            // 优先使用后端返回的错误信息
+            const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '操作失败';
+            ElMessage.error(errorMsg);
           }
           break;
         case 'delete':
@@ -395,7 +405,10 @@ export default {
         });
         ElMessage.success('消息已撤回');
       } catch (error) {
-        ElMessage.error('撤回失败');
+        console.error('撤回失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '撤回失败';
+        ElMessage.error(errorMsg);
       } finally {
         showMessageMenu.value = false;
       }
@@ -409,7 +422,10 @@ export default {
         navigator.clipboard.writeText(selectedMessage.value.content);
         ElMessage.success('已复制到剪贴板');
       } catch (error) {
-        ElMessage.error('复制失败');
+        console.error('复制失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '复制失败';
+        ElMessage.error(errorMsg);
       } finally {
         showMessageMenu.value = false;
       }
@@ -434,7 +450,10 @@ export default {
         });
         ElMessage.success('消息已删除');
       } catch (error) {
-        ElMessage.error('删除失败');
+        console.error('删除失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '删除失败';
+        ElMessage.error(errorMsg);
       } finally {
         showMessageMenu.value = false;
       }

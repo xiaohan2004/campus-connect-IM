@@ -129,7 +129,9 @@ export default {
         }, 1000);
       } catch (error) {
         console.error('发送验证码失败:', error);
-        ElMessage.error(error.message || '发送验证码失败，请稍后重试');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '发送验证码失败，请稍后重试';
+        ElMessage.error(errorMsg);
       }
     };
 
@@ -152,7 +154,7 @@ export default {
         return;
       }
       
-      const phoneRegex = /^1[3-9]\d{9}$/;
+      const phoneRegex = /^\d{11}$/;
       if (!phoneRegex.test(form.phone)) {
         ElMessage.warning('请输入正确的手机号');
         return;
@@ -191,7 +193,9 @@ export default {
         router.push('/login');
       } catch (error) {
         console.error('密码重置失败:', error);
-        ElMessage.error(error.message || '密码重置失败，请稍后重试');
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '密码重置失败，请稍后重试';
+        ElMessage.error(errorMsg);
       } finally {
         loading.value = false;
       }

@@ -357,7 +357,10 @@ export default {
         selectedFriendId.value = null;
         router.push(`/chat/conversation/${conversation.id}`);
       } catch (error) {
-        ElMessage.error(`创建会话失败: ${error.message || '未知错误'}`);
+        console.error('创建会话失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '创建会话失败';
+        ElMessage.error(errorMsg);
       }
     };
 
@@ -384,7 +387,10 @@ export default {
         selectedGroupId.value = null;
         router.push(`/chat/conversation/${conversation.id}`);
       } catch (error) {
-        ElMessage.error(`创建会话失败: ${error.message || '未知错误'}`);
+        console.error('创建会话失败:', error);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '创建会话失败';
+        ElMessage.error(errorMsg);
       }
     };
 
@@ -437,7 +443,9 @@ export default {
         await store.dispatch('group/getGroups');
       } catch (error) {
         console.error('创建群组失败:', error);
-        ElMessage.error(`创建群组失败: ${error.message || '未知错误'}`);
+        // 优先使用后端返回的错误信息
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '创建群组失败';
+        ElMessage.error(errorMsg);
       }
     };
 

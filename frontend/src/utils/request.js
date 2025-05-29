@@ -28,32 +28,45 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data;
-    // 如果响应码不是200，认为请求错误
+    
+    // 只有当响应码不是200时，才认为请求错误
     if (res.code !== 200) {
-      ElMessage({
-        message: res.message || '请求错误',
-        type: 'error',
-        duration: 5 * 1000
-      });
-
+      // 获取错误信息，优先使用 msg，其次是 message
+      const errorMsg = res.msg || res.message || '请求错误';
+      
       // 401: 未登录或token过期
       if (res.code === 401) {
         // 清除token并跳转到登录页
         localStorage.removeItem('token');
         router.push('/login');
       }
-      return Promise.reject(new Error(res.message || '请求错误'));
+      
+      // 返回一个带有后端错误信息的错误对象
+      const error = new Error(errorMsg);
+      error.response = { data: res };
+      return Promise.reject(error);
     } else {
       return res;
     }
   },
   error => {
     console.log('请求错误:', error);
-    ElMessage({
-      message: error.message || '请求错误',
-      type: 'error',
-      duration: 5 * 1000
-    });
+    
+    // 尝试从错误响应中获取错误信息
+    let errorMsg = '网络错误，请稍后重试';
+    
+    if (error.response && error.response.data) {
+      // 优先使用后端返回的错误信息
+      errorMsg = error.response.data.msg || error.response.data.message || error.message || errorMsg;
+    } else if (error.message) {
+      errorMsg = error.message;
+    }
+    
+    // 确保错误对象包含完整的响应信息
+    if (!error.response) {
+      error.response = { data: { msg: errorMsg } };
+    }
+    
     return Promise.reject(error);
   }
 );
