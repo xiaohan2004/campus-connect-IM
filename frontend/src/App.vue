@@ -26,13 +26,29 @@ export default {
         // 获取未读消息数
         store.dispatch('message/getUnreadMessageCount');
         // 获取离线消息
-        store.dispatch('message/getOfflineMessages').then(messages => {
-          if (messages && messages.length > 0) {
-            // 确认接收离线消息
-            const messageIds = messages.map(msg => msg.messageId);
-            store.dispatch('message/confirmOfflineMessages', messageIds);
-          }
-        });
+        store.dispatch('message/getOfflineMessages')
+          .then(messages => {
+            console.log('[App] 获取到离线消息:', messages);
+            if (messages && messages.length > 0) {
+              const messageIds = messages.map(msg => msg.messageId);
+              console.log('[App] 准备确认离线消息, messageIds:', messageIds);
+              // 确认接收离线消息
+              return store.dispatch('message/confirmOfflineMessages', messageIds)
+                .then(() => {
+                  console.log('[App] 确认离线消息成功');
+                })
+                .catch(error => {
+                  console.error('[App] 确认离线消息失败:', error);
+                  // 不抛出错误，让应用继续运行
+                });
+            } else {
+              console.log('[App] 没有离线消息需要确认');
+            }
+          })
+          .catch(error => {
+            console.error('[App] 获取离线消息失败:', error);
+            // 不抛出错误，让应用继续运行
+          });
       }
     });
 

@@ -51,12 +51,28 @@ public class WebSocketController {
             // 从会话中获取发送者手机号
             String senderPhone = getPhoneFromSession(headerAccessor);
             if (senderPhone == null) {
+                logger.warn("发送者手机号为空");
                 return;
             }
 
             // 获取发送者ID
             Long senderId = userService.getUserByPhone(senderPhone).getId();
             if (senderId == null) {
+                logger.warn("发送者ID为空");
+                return;
+            }
+
+            // 检查必要的参数是否存在
+            if (payload.get("receiverId") == null) {
+                logger.warn("接收者ID为空");
+                return;
+            }
+            if (payload.get("contentType") == null) {
+                logger.warn("内容类型为空");
+                return;
+            }
+            if (payload.get("content") == null) {
+                logger.warn("消息内容为空");
                 return;
             }
 
@@ -94,12 +110,28 @@ public class WebSocketController {
             // 从会话中获取发送者手机号
             String senderPhone = getPhoneFromSession(headerAccessor);
             if (senderPhone == null) {
+                logger.warn("发送者手机号为空");
                 return;
             }
 
             // 获取发送者ID
             Long senderId = userService.getUserByPhone(senderPhone).getId();
             if (senderId == null) {
+                logger.warn("发送者ID为空");
+                return;
+            }
+
+            // 检查必要的参数是否存在
+            if (payload.get("groupId") == null) {
+                logger.warn("群组ID为空");
+                return;
+            }
+            if (payload.get("contentType") == null) {
+                logger.warn("内容类型为空");
+                return;
+            }
+            if (payload.get("content") == null) {
+                logger.warn("消息内容为空");
                 return;
             }
 
@@ -148,6 +180,13 @@ public class WebSocketController {
             // 从会话中获取发送者手机号
             String readerPhone = getPhoneFromSession(headerAccessor);
             if (readerPhone == null) {
+                logger.warn("读者手机号为空");
+                return;
+            }
+
+            // 检查必要的参数是否存在
+            if (payload.get("messageId") == null) {
+                logger.warn("消息ID为空");
                 return;
             }
 

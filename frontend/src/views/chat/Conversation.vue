@@ -49,13 +49,13 @@
           <div
             class="message"
             :class="{
-              sent: message.sender === currentUser.id,
-              received: message.sender !== currentUser.id
+              sent: message.sender === currentUser.id || message.senderId === currentUser.id,
+              received: message.sender !== currentUser.id && message.senderId !== currentUser.id
             }"
           >
             <img
-              v-if="message.sender !== currentUser.id"
-              :src="getSenderAvatar(message.sender)"
+              v-if="message.sender !== currentUser.id && message.senderId !== currentUser.id"
+              :src="getSenderAvatar(message.sender || message.senderId)"
               class="avatar message-avatar"
               alt="头像"
             />
@@ -65,7 +65,7 @@
                 <template v-if="message.isRecalled">
                   <div class="recalled-message">
                     <i class="el-icon-warning-outline"></i>
-                    {{ message.sender === currentUser.id ? '你' : '对方' }}撤回了一条消息
+                    {{ (message.sender === currentUser.id || message.senderId === currentUser.id) ? '你' : '对方' }}撤回了一条消息
                   </div>
                 </template>
                 <!-- 普通消息 -->
@@ -76,7 +76,7 @@
               <div class="message-time">
                 {{ formatMessageTime(message.timestamp) }}
                 <i
-                  v-if="message.sender === currentUser.id"
+                  v-if="message.sender === currentUser.id || message.senderId === currentUser.id"
                   :class="[
                     message.isRead ? 'el-icon-check' : 'el-icon-circle-check',
                     message.isRead ? 'read' : ''
@@ -85,7 +85,7 @@
               </div>
             </div>
             <img
-              v-if="message.sender === currentUser.id"
+              v-if="message.sender === currentUser.id || message.senderId === currentUser.id"
               :src="currentUser.avatar || defaultAvatar"
               class="avatar message-avatar"
               alt="头像"
@@ -176,7 +176,13 @@ export default {
     const conversation = computed(() => store.state.conversation.currentConversation);
     const messages = computed(() => {
       const conversationId = Number(props.id);
-      return store.state.message.messages[conversationId] || [];
+      const messageList = store.state.message.messages[conversationId] || [];
+      console.log('[Conversation] 获取消息列表', { 
+        conversationId, 
+        messageCount: messageList.length,
+        messages: messageList 
+      });
+      return messageList;
     });
     const friends = computed(() => store.state.friendship.friends || []);
     const groups = computed(() => store.state.group.groups || []);
@@ -221,32 +227,44 @@ export default {
         // 获取会话详情
         await store.dispatch('conversation/getConversationDetail', conversationId);
         
-        console.log('获取到的会话详情:', conversation.value);
+        console.log('[Conversation] 获取到的会话详情:', conversation.value);
         
         // 根据会话类型获取消息
         if (conversation.value) {
           // 检查 conversation.value.isGroup 是否存在
-          console.log('会话类型:', conversation.value.conversationType);
+          console.log('[Conversation] 会话类型:', conversation.value.conversationType);
           
           // 根据 conversationType 判断是否为群聊
           // 假设 conversationType = 1 表示群聊，conversationType = 0 表示私聊
           const isGroup = conversation.value.conversationType === 1;
           
           if (isGroup) {
-            console.log('这是群聊会话，群组ID:', conversation.value.targetId);
+            console.log('[Conversation] 这是群聊会话，群组ID:', conversation.value.targetId);
             // 群聊消息
-            await store.dispatch('message/getGroupMessages', {
+            const groupMessages = await store.dispatch('message/getGroupMessages', {
               conversationId,
               groupId: conversation.value.targetId // 使用 targetId 作为 groupId
             });
+            console.log('[Conversation] 获取到群聊消息:', groupMessages);
           } else {
-            console.log('这是私聊会话，对方ID:', conversation.value.targetId);
+            console.log('[Conversation] 这是私聊会话，对方ID:', conversation.value.targetId);
+            
+            // 检查targetId是否存在
+            if (!conversation.value.targetId) {
+              console.error('[Conversation] 对方ID为空，无法获取消息');
+              ElMessage.error('对方ID为空，无法获取消息');
+              return;
+            }
+            
             // 私聊消息
-            await store.dispatch('message/getPrivateMessages', {
+            const privateMessages = await store.dispatch('message/getPrivateMessages', {
               conversationId,
-              otherUserId: conversation.value.targetId // 使用 targetId 作为对方用户ID
+              otherUserId: conversation.value.targetId // 使用 targetId 作为 otherUserId
             });
+            console.log('[Conversation] 获取到私聊消息:', privateMessages);
           }
+          
+          console.log('[Conversation] 获取到的消息列表:', messages.value);
           
           // 标记会话已读
           await store.dispatch('conversation/markConversationAsRead', conversationId);
@@ -255,10 +273,10 @@ export default {
           await nextTick();
           scrollToBottom();
         } else {
-          console.error('会话详情为空');
+          console.error('[Conversation] 会话详情为空');
         }
       } catch (error) {
-        console.error('获取会话数据错误:', error);
+        console.error('[Conversation] 获取会话数据错误:', error);
         // 优先使用后端返回的错误信息
         const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '获取会话数据失败';
         ElMessage.error(errorMsg);
@@ -273,40 +291,57 @@ export default {
       messageInput.value = '';
       
       try {
-        console.log('发送消息，会话信息:', conversation.value);
+        console.log('[Conversation] 开始发送消息:', content);
+        console.log('[Conversation] 会话信息:', conversation.value);
         
         if (!conversation.value) {
-          console.error('会话信息为空，无法发送消息');
+          console.error('[Conversation] 会话信息为空，无法发送消息');
           ElMessage.error('会话信息获取失败，请刷新页面重试');
           return;
         }
         
         // 根据 conversationType 判断是否为群聊
         const isGroup = conversation.value.conversationType === 1;
+        const conversationId = Number(props.id);
+        
+        console.log('[Conversation] 发送消息前的会话ID:', conversationId);
+        console.log('[Conversation] 发送消息前的消息列表长度:', (store.state.message.messages[conversationId] || []).length);
         
         if (isGroup) {
-          console.log('发送群聊消息，群组ID:', conversation.value.targetId);
+          console.log('[Conversation] 发送群聊消息，群组ID:', conversation.value.targetId);
           // 发送群聊消息
-          await store.dispatch('message/sendGroupMessage', {
+          const result = await store.dispatch('message/sendGroupMessage', {
             groupId: conversation.value.targetId,
             contentType: 1, // 文本消息
             content
           });
+          console.log('[Conversation] 群聊消息发送结果:', result);
         } else {
-          console.log('发送私聊消息，对方ID:', conversation.value.targetId);
+          console.log('[Conversation] 发送私聊消息，对方ID:', conversation.value.targetId);
+          
+          // 确保 targetId 存在且有效
+          if (!conversation.value.targetId) {
+            console.error('[Conversation] 接收者ID为空');
+            ElMessage.error('接收者ID为空，无法发送消息');
+            return;
+          }
+          
           // 发送私聊消息
-          await store.dispatch('message/sendPrivateMessage', {
+          const result = await store.dispatch('message/sendPrivateMessage', {
             receiverId: conversation.value.targetId,
             contentType: 1, // 文本消息
             content
           });
+          console.log('[Conversation] 私聊消息发送结果:', result);
         }
+        
+        console.log('[Conversation] 发送消息后的消息列表长度:', (store.state.message.messages[conversationId] || []).length);
         
         // 滚动到底部
         await nextTick();
         scrollToBottom();
       } catch (error) {
-        console.error('发送消息错误:', error);
+        console.error('[Conversation] 发送消息错误:', error);
         // 优先使用后端返回的错误信息
         const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || '发送消息失败';
         ElMessage.error(errorMsg);
@@ -399,9 +434,21 @@ export default {
       if (!selectedMessage.value) return;
       
       try {
+        // 获取会话信息
+        if (!conversation.value) {
+          console.error('会话信息不存在');
+          ElMessage.error('无法撤回消息，会话信息不存在');
+          return;
+        }
+        
+        const conversationType = conversation.value.conversationType;
+        const targetId = conversation.value.targetId;
+        
         await store.dispatch('message/recallMessage', {
           conversationId: Number(props.id),
-          messageId: selectedMessage.value.messageId
+          messageId: selectedMessage.value.messageId,
+          conversationType,
+          targetId
         });
         ElMessage.success('消息已撤回');
       } catch (error) {
@@ -479,7 +526,13 @@ export default {
     
     // 格式化消息时间
     const formatMessageTime = (timestamp) => {
-      return formatTime(timestamp, 'HH:mm');
+      if (!timestamp) return '';
+      try {
+        return formatTime(timestamp, 'HH:mm');
+      } catch (error) {
+        console.error('[Conversation] 格式化消息时间错误:', error);
+        return '';
+      }
     };
     
     onMounted(() => {

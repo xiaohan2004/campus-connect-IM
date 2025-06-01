@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 
 /**
  * 消息控制器
@@ -94,7 +97,7 @@ public class MessageController {
     /**
      * 获取私聊消息列表
      *
-     * @param otherPhone 对方手机号
+     * @param otherPhone 对方手机号或ID
      * @param limit 消息数量限制
      * @param offset 偏移量
      * @param request HTTP请求
@@ -107,8 +110,29 @@ public class MessageController {
             @RequestParam(defaultValue = "0") int offset,
             HttpServletRequest request) {
         String userPhone = AuthUtil.getCurrentUserPhone(request);
-        List<Message> messages = messageService.getPrivateMessages(userPhone, otherPhone, limit, offset);
-        return Result.success(messages);
+        
+        // 日志记录
+        System.out.println("获取私聊消息，当前用户: " + userPhone + ", 对方: " + otherPhone + ", limit: " + limit + ", offset: " + offset);
+        
+        // 检查otherPhone是否为数字（用户ID）
+        String targetPhone = otherPhone;
+        try {
+            Long targetId = Long.parseLong(otherPhone);
+            // 如果是数字，可能是用户ID，尝试获取对应的手机号
+            targetPhone = userService.getUserById(targetId).getPhone();
+            System.out.println("对方ID转换为手机号: " + targetPhone);
+        } catch (NumberFormatException e) {
+            // 不是数字，按手机号处理
+            System.out.println("对方参数按手机号处理: " + otherPhone);
+        }
+        
+        List<Message> messages = messageService.getPrivateMessages(userPhone, targetPhone, limit, offset);
+        System.out.println("获取到 " + messages.size() + " 条私聊消息");
+        
+        // 转换消息格式
+        List<Map<String, Object>> convertedMessages = convertMessagesToFrontendFormat(messages);
+        
+        return Result.success(convertedMessages);
     }
 
     /**
@@ -127,7 +151,64 @@ public class MessageController {
             @RequestParam(defaultValue = "0") int offset,
             HttpServletRequest request) {
         List<Message> messages = messageService.getGroupMessages(groupId, limit, offset);
-        return Result.success(messages);
+        
+        // 转换消息格式
+        List<Map<String, Object>> convertedMessages = convertMessagesToFrontendFormat(messages);
+        
+        return Result.success(convertedMessages);
+    }
+
+    /**
+     * 将后端Message实体转换为前端期望的格式
+     *
+     * @param messages 消息列表
+     * @return 转换后的消息列表
+     */
+    private List<Map<String, Object>> convertMessagesToFrontendFormat(List<Message> messages) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        // 按发送时间升序排序（从旧到新）
+        messages.sort(Comparator.comparing(Message::getSendTime));
+        
+        for (Message message : messages) {
+            Map<String, Object> convertedMessage = new HashMap<>();
+            
+            // 字段名称映射
+            convertedMessage.put("messageId", message.getId()); // id -> messageId
+            convertedMessage.put("conversationId", message.getConversationType() == 0 ? 
+                                                  createPrivateConversationId(message.getSenderId(), message.getReceiverId()) : 
+                                                  message.getReceiverId()); // 群聊使用groupId作为conversationId
+            convertedMessage.put("senderId", message.getSenderId());
+            convertedMessage.put("receiverId", message.getReceiverId());
+            convertedMessage.put("contentType", message.getContentType());
+            convertedMessage.put("content", message.getContent());
+            convertedMessage.put("extra", message.getExtra());
+            convertedMessage.put("isRecalled", message.getIsRecalled() == 1);
+            convertedMessage.put("isRead", message.getStatus() == 1);
+            convertedMessage.put("timestamp", message.getSendTime().toString()); // sendTime -> timestamp
+            convertedMessage.put("sender", message.getSenderId()); // 兼容前端代码
+            
+            result.add(convertedMessage);
+        }
+        
+        System.out.println("转换后的消息数量: " + result.size());
+        return result;
+    }
+    
+    /**
+     * 创建私聊会话ID（确保两个用户之间的会话ID一致）
+     *
+     * @param userId1 用户1的ID
+     * @param userId2 用户2的ID
+     * @return 会话ID
+     */
+    private Long createPrivateConversationId(Long userId1, Long userId2) {
+        // 使用较小的ID作为前缀，确保两个用户之间的会话ID一致
+        Long smallerId = Math.min(userId1, userId2);
+        Long largerId = Math.max(userId1, userId2);
+        
+        // 简单的组合方式，可以根据实际需求调整
+        return Long.parseLong(smallerId + "" + largerId);
     }
 
     /**

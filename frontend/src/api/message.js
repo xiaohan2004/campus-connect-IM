@@ -19,15 +19,17 @@ export function sendGroupMessage(data) {
 }
 
 // 获取私聊消息列表
-export function getPrivateMessages(otherPhone) {
+export function getPrivateMessages(otherUserId) {
+  console.log('[API] 获取私聊消息, 对方ID:', otherUserId);
   return request({
-    url: `/api/message/private/${otherPhone}`,
+    url: `/api/message/private/${otherUserId}`,
     method: 'get'
   });
 }
 
 // 获取群聊消息列表
 export function getGroupMessages(groupId) {
+  console.log('[API] 获取群聊消息, 群组ID:', groupId);
   return request({
     url: `/api/message/group/${groupId}`,
     method: 'get'

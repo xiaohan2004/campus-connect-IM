@@ -201,6 +201,22 @@ export function sendPrivateMessage(data) {
     return false;
   }
   
+  // 验证必要的字段
+  if (!data.receiverId) {
+    console.error('[WebSocket] 发送私聊消息失败: 缺少接收者ID');
+    return false;
+  }
+  
+  if (!data.contentType) {
+    console.error('[WebSocket] 发送私聊消息失败: 缺少内容类型');
+    return false;
+  }
+  
+  if (!data.content) {
+    console.error('[WebSocket] 发送私聊消息失败: 缺少消息内容');
+    return false;
+  }
+  
   try {
     stompClient.send('/app/private.message', JSON.stringify(data));
     console.log('[WebSocket] 私聊消息发送成功');
@@ -219,6 +235,22 @@ export function sendGroupMessage(data) {
   if (!stompClient || !stompClient.connected) {
     console.error('[WebSocket] 未连接，无法发送群聊消息');
     ElMessage.error('WebSocket未连接，无法发送消息');
+    return false;
+  }
+  
+  // 验证必要的字段
+  if (!data.groupId) {
+    console.error('[WebSocket] 发送群聊消息失败: 缺少群组ID');
+    return false;
+  }
+  
+  if (!data.contentType) {
+    console.error('[WebSocket] 发送群聊消息失败: 缺少内容类型');
+    return false;
+  }
+  
+  if (!data.content) {
+    console.error('[WebSocket] 发送群聊消息失败: 缺少消息内容');
     return false;
   }
   
@@ -273,8 +305,8 @@ export function sendUserStatus() {
 }
 
 // 发送消息撤回请求
-export function sendMessageRecall(messageId) {
-  console.log('[WebSocket] 准备发送消息撤回请求:', messageId);
+export function sendMessageRecall(messageId, conversationType, targetId) {
+  console.log('[WebSocket] 准备发送消息撤回请求:', { messageId, conversationType, targetId });
   
   if (!stompClient || !stompClient.connected) {
     console.error('[WebSocket] 未连接，无法撤回消息');
@@ -282,8 +314,31 @@ export function sendMessageRecall(messageId) {
     return false;
   }
   
+  // 验证必要的字段
+  if (!messageId) {
+    console.error('[WebSocket] 发送消息撤回请求失败: 缺少消息ID');
+    return false;
+  }
+  
+  if (conversationType === undefined) {
+    console.error('[WebSocket] 发送消息撤回请求失败: 缺少会话类型');
+    return false;
+  }
+  
+  if (!targetId) {
+    console.error('[WebSocket] 发送消息撤回请求失败: 缺少目标ID');
+    return false;
+  }
+  
+  const data = {
+    messageId,
+    conversationType,
+    // 根据会话类型添加不同的字段
+    ...(conversationType === 0 ? { receiverId: targetId } : { groupId: targetId })
+  };
+  
   try {
-    stompClient.send('/app/message.recall', JSON.stringify({ messageId }));
+    stompClient.send('/app/message.recall', JSON.stringify(data));
     console.log('[WebSocket] 消息撤回请求发送成功');
     return true;
   } catch (error) {
