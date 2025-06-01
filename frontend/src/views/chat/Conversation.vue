@@ -70,7 +70,7 @@
                 </template>
                 <!-- 普通消息 -->
                 <template v-else>
-                  {{ message.content }}
+                  <div v-html="message.content"></div>
                 </template>
               </div>
               <div class="message-time">
@@ -91,8 +91,8 @@
 
     <!-- 输入工具栏 -->
     <div class="toolbar">
-      <button class="btn btn-primary btn-sm btn-compact">
-        <span>文件</span>
+      <button class="btn btn-primary btn-sm btn-compact" @click="showGoodsTable">
+        <span>广告</span>
       </button>
       <textarea
         class="toolbar-input"
@@ -134,6 +134,39 @@
         </button>
       </div>
     </el-dialog>
+
+    <!-- 商品表格弹窗 -->
+    <el-dialog
+      title="商品列表"
+      v-model="goodsDialogVisible"
+      width="70%"
+      :close-on-click-modal="false"
+      :destroy-on-close="true"
+      @closed="handleDialogClosed"
+    >
+      <div class="goods-table-container">
+        <el-table 
+          :data="goodsList" 
+          style="width: 100%"
+          :max-height="400"
+          v-loading="loading"
+        >
+          <el-table-column prop="name" label="商品名称" min-width="120" />
+          <el-table-column prop="intro" label="商品描述" min-width="200" show-overflow-tooltip />
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="scope">
+              <el-button
+                size="small"
+                type="primary"
+                @click="generateAd(scope.row)"
+              >
+                生成广告文案
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -141,9 +174,10 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
 import defaultAvatar from '@/assets/default-avatar.png';
 import { formatTime, formatDate } from '@/utils/format';
+import { getGoodsByPhone, generateAIAd } from '@/api/goods';
 
 export default {
   name: 'Conversation',
@@ -164,6 +198,9 @@ export default {
     const isMobile = ref(window.innerWidth < 768);
     const showMessageMenu = ref(false);
     const selectedMessage = ref(null);
+    const goodsDialogVisible = ref(false);
+    const goodsList = ref([]);
+    const loading = ref(false);
     
     // 从store获取数据
     const currentUser = computed(() => store.state.user.userInfo || {});
@@ -529,6 +566,72 @@ export default {
       }
     };
     
+    const showGoodsTable = async () => {
+      try {
+        loading.value = true;
+        // 获取当前用户手机号
+        const phone = store.state.user.userInfo?.phone;
+        if (!phone) {
+          ElMessage.error('获取用户信息失败');
+          return;
+        }
+        
+        // 请求商品数据
+        const { data } = await getGoodsByPhone(phone);
+        if (data && Array.isArray(data)) {
+          goodsList.value = data;
+          goodsDialogVisible.value = true;
+        } else {
+          ElMessage.warning('暂无商品数据');
+        }
+      } catch (error) {
+        console.error('获取商品列表失败:', error);
+        ElMessage.error('获取商品列表失败');
+      } finally {
+        loading.value = false;
+      }
+    };
+    
+    const generateAd = async (goods) => {
+      let loadingInstance = null;
+      try {
+        // 显示加载提示
+        loadingInstance = ElLoading.service({
+          lock: true,
+          text: '正在生成广告文案...',
+          background: 'rgba(0, 0, 0, 0.7)'
+        });
+
+        // 调用AI广告生成接口
+        const { data } = await generateAIAd({
+          gid: goods.gid.toString(),
+          name: goods.name,
+          intro: goods.intro
+        });
+
+        // 将生成的广告文案填入消息框
+        messageInput.value = data;
+        
+        // 关闭商品列表弹窗
+        goodsDialogVisible.value = false;
+        
+        // 提示成功
+        ElMessage.success('广告文案生成成功');
+      } catch (error) {
+        console.error('生成广告文案失败:', error);
+        ElMessage.error('生成广告文案失败');
+      } finally {
+        // 确保在任何情况下都关闭加载提示
+        if (loadingInstance) {
+          loadingInstance.close();
+        }
+      }
+    };
+
+    const handleDialogClosed = () => {
+      goodsList.value = [];
+    };
+    
     onMounted(() => {
       window.addEventListener('resize', handleResize);
       // 获取好友和群组列表
@@ -569,7 +672,13 @@ export default {
       getSenderAvatar,
       showDateDivider,
       formatDate,
-      formatMessageTime
+      formatMessageTime,
+      goodsDialogVisible,
+      goodsList,
+      showGoodsTable,
+      generateAd,
+      loading,
+      handleDialogClosed
     };
   }
 };
@@ -768,6 +877,17 @@ export default {
       color: $white;
       border-radius: 12px 2px 12px 12px;
       margin-left: $spacing-2;
+
+      :deep(a) {
+        color: #FFD700 !important;
+        text-decoration: none;
+        font-weight: 500;
+        
+        &:hover {
+          text-decoration: underline;
+          opacity: 0.9;
+        }
+      }
     }
     
     .message-content-wrapper {
@@ -781,6 +901,17 @@ export default {
       background-color: $white;
       border-radius: 2px 12px 12px 12px;
       margin-right: $spacing-2;
+
+      :deep(a) {
+        color: #409EFF !important;
+        text-decoration: none;
+        font-weight: 500;
+        
+        &:hover {
+          text-decoration: underline;
+          opacity: 0.9;
+        }
+      }
     }
     
     .message-content-wrapper {
@@ -803,5 +934,26 @@ export default {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.el-dialog {
+  border-radius: 8px;
+}
+
+.el-table {
+  margin: 10px 0;
+}
+
+.goods-table-container {
+  margin: -20px;
+  padding: 20px;
+  
+  .el-table {
+    --el-table-border-color: var(--el-border-color-lighter);
+    
+    :deep(th.el-table__cell) {
+      background-color: var(--el-fill-color-light);
+    }
+  }
 }
 </style> 

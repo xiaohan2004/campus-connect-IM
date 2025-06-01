@@ -7,6 +7,7 @@ import com.campus.im.dto.RegisterDTO;
 import com.campus.im.dto.ResetPasswordDTO;
 import com.campus.im.entity.User;
 import com.campus.im.service.UserService;
+import com.campus.im.util.AIChat;
 import com.campus.im.util.EmailUtil;
 import com.campus.im.util.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -21,10 +22,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -50,6 +48,9 @@ public class LoginController {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private AIChat aiChat;
 
     @Value("${app.url.login}")
     private String externalLoginUrl;
@@ -275,4 +276,38 @@ public class LoginController {
         return Result.success("验证码已发送");
     }
 
+    @GetMapping("/getGoodsByPhone")
+    public Result getGoodsByPhone(@RequestParam String phone) {
+        // 参数校验
+        if (!StringUtils.hasText(phone)) {
+            return Result.error(ResultCode.PARAM_ERROR, "手机号不能为空");
+        }
+
+        // 请求外部API获取商品信息
+        String url = externalGetGoodsByPhoneUrl + '/' + phone;
+        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+        Map<String, Object> responseBody = response.getBody();
+        if (responseBody == null || !responseBody.get("msg").equals("success")) {
+            return Result.error(ResultCode.ERROR, "获取商品信息失败");
+        }
+
+        // 返回商品数据
+        return Result.success(responseBody.get("data"));
+    }
+
+    @PostMapping("/aiAD")
+    public Result aiAD(@RequestBody Map<String, String> params) {
+        String gid = params.get("gid");
+        String name = params.get("name");
+        String intro = params.get("intro");
+
+        String ad = aiChat.getResponse(name, intro);
+        if (ad == null || ad.isEmpty()) {
+            return Result.error(ResultCode.ERROR, "AI生成广告文案失败");
+        }
+
+        ad += "<br><br>👉 <a href='https://campus.im/goods/" + gid + "' target='_blank'>点击查看详情</a>";
+
+        return Result.success(ad);
+    }
 }
