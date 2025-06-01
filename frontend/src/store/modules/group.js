@@ -14,7 +14,8 @@ import {
   unmuteGroupMember,
   getGroupMembers,
   getGroupMemberUsers,
-  checkUserInGroup
+  checkUserInGroup,
+  getAllGroups
 } from '@/api/group';
 
 const state = {
@@ -283,6 +284,21 @@ const actions = {
   // 清空群组数据
   clearGroups({ commit }) {
     commit('CLEAR_GROUPS');
+  },
+
+  // 获取所有群组列表
+  getAllGroups({ commit }) {
+    return new Promise((resolve, reject) => {
+      getAllGroups()
+        .then(response => {
+          const { data } = response;
+          commit('SET_GROUPS', data);
+          resolve(data);
+        })
+        .catch(error => {
+          reject(error);
+        });
+    });
   }
 };
 

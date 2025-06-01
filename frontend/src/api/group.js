@@ -133,4 +133,12 @@ export function checkUserInGroup(groupId) {
     url: `/api/group/${groupId}/check`,
     method: 'get'
   });
+}
+
+// 获取所有群组
+export function getAllGroups() {
+  return request({
+    url: '/api/group/all',
+    method: 'get'
+  });
 } 

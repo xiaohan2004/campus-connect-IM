@@ -95,4 +95,12 @@
         FROM chat_group
         WHERE name LIKE CONCAT('%', #{name}, '%') AND status != 2
     </select>
+
+    <!-- 查询所有群组 -->
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_group
+        WHERE status != 2
+    </select>
 </mapper> 

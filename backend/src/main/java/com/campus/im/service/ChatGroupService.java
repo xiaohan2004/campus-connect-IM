@@ -205,4 +205,11 @@ public interface ChatGroupService {
      * @return 是否有权限
      */
     boolean hasPermission(Long groupId, Long userId, Integer requiredRole);
+    
+    /**
+     * 获取所有群组列表
+     *
+     * @return 所有群组列表
+     */
+    List<ChatGroup> getAllGroups();
 } 

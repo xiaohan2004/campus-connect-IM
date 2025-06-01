@@ -492,4 +492,9 @@ public class ChatGroupServiceImpl implements ChatGroupService {
         // 普通成员只有普通成员权限
         return member.getRole() == requiredRole;
     }
+    
+    @Override
+    public List<ChatGroup> getAllGroups() {
+        return chatGroupMapper.selectList();
+    }
 } 

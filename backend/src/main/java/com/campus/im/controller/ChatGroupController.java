@@ -399,4 +399,15 @@ public class ChatGroupController {
         boolean isInGroup = chatGroupService.isUserInGroup(groupId, userId);
         return Result.success(isInGroup);
     }
+
+    /**
+     * 获取所有群组列表
+     *
+     * @return 所有群组列表
+     */
+    @GetMapping("/all")
+    public Result getAllGroups() {
+        List<ChatGroup> groups = chatGroupService.getAllGroups();
+        return Result.success(groups);
+    }
 }

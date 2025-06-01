@@ -249,19 +249,21 @@ export default {
       // 根据会话类型显示不同的标题
       if (conversation.conversationType === 1) {
         // 群聊 - 尝试从群组列表中获取更详细的信息
+        console.log('当前会话信息:', conversation);
+        console.log('群组列表:', groups.value);
+        
         const group = groups.value.find(g => Number(g.id) === Number(conversation.targetId));
+        console.log('匹配到的群组:', group);
+        
         if (group) {
-          return `${group.name || conversation.title || '未命名群聊'} (群聊)`;
+          return `${group.name} (群聊)`;
         }
-        return `${conversation.title || '未命名群聊'} (群聊)`;
+        // 如果找不到对应的群组信息，则使用会话中的标题
+        return `${conversation.title} (群聊)`;
       } else {
         // 私聊 - 尝试从好友列表中获取更详细的信息
         const friend = friends.value.find(f => Number(f.id) === Number(conversation.targetId));
-        console.log('找到的好友信息:', friend);
         if (friend) {
-          // 检查好友对象是否包含remark字段
-          console.log('好友备注名:', friend.remark);
-          // 优先显示备注名，如果没有备注名再显示昵称
           return `${friend.remark || friend.nickname || conversation.title || '未知联系人'} (私聊)`;
         }
         return `${conversation.title || '未知联系人'} (私聊)`;
@@ -269,8 +271,21 @@ export default {
     };
 
     // 打开新建会话弹窗
-    const openAddConversation = () => {
+    const openAddConversation = async () => {
       showAddConversation.value = true;
+      if (activeTab.value === 'group') {
+        try {
+          await store.dispatch('group/getAllGroups');
+        } catch (error) {
+          console.error('获取群组列表失败:', error);
+          console.error('错误详情:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+          });
+          ElMessage.error(error.response?.data?.msg || '获取群组列表失败');
+        }
+      }
     };
     
     // 关闭新建会话弹窗
@@ -311,6 +326,26 @@ export default {
       }
     );
 
+    // 监听标签页变化
+    watch(
+      () => activeTab.value,
+      async (newTab) => {
+        if (newTab === 'group') {
+          try {
+            await store.dispatch('group/getAllGroups');
+          } catch (error) {
+            console.error('获取群组列表失败:', error);
+            console.error('错误详情:', {
+              status: error.response?.status,
+              data: error.response?.data,
+              message: error.message
+            });
+            ElMessage.error(error.response?.data?.msg || '获取群组列表失败');
+          }
+        }
+      }
+    );
+
     // 监听窗口大小变化
     const handleResize = () => {
       isMobile.value = window.innerWidth < 768;
@@ -323,6 +358,7 @@ export default {
       if (isLoggedIn.value) {
         store.dispatch('conversation/getConversations');
         store.dispatch('group/getGroups');
+        store.dispatch('group/getAllGroups');
         store.dispatch('friendship/getFriendsWithDetails');
       }
     });

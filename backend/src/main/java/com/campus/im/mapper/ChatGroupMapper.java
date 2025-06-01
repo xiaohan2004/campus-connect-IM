@@ -77,4 +77,11 @@ public interface ChatGroupMapper {
      * @return 群组列表
      */
     List<ChatGroup> selectByName(@Param("name") String name);
+    
+    /**
+     * 查询所有群组
+     *
+     * @return 群组列表
+     */
+    List<ChatGroup> selectList();
 } 
