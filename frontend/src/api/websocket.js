@@ -63,9 +63,13 @@ export function connectWebSocket(token, msgCallback, statCallback) {
   connectionStatus = 'connecting';
 
   if (stompClient && stompClient.connected) {
-    console.log('[WebSocket] 已连接，跳过连接过程');
+    console.log('[WebSocket] 已连接，检查订阅状态...');
+    // 检查订阅是否存在
+    if (stompClient.subscriptions) {
+      console.log('[WebSocket] 当前活跃的订阅:', Object.keys(stompClient.subscriptions));
+    }
     connectionStatus = 'connected';
-    return true; // 返回连接状态
+    return true;
   }
   
   // 如果正在重连，不要重复连接
@@ -103,10 +107,28 @@ export function connectWebSocket(token, msgCallback, statCallback) {
 
     socket = new SockJS(urlWithToken);
 
+    // 添加 SockJS 事件监听
+    socket.onopen = function() {
+      console.log('[SockJS] 连接已打开');
+    };
+
+    socket.onmessage = function(e) {
+      console.log('[SockJS] 收到消息:', e.data);
+    };
+
+    socket.onerror = function(e) {
+      console.error('[SockJS] 发生错误:', e);
+    };
+
     stompClient = Stomp.over(socket);
 
-    // 调试日志，过滤心跳
+    // 增强调试日志
     stompClient.debug = function(str) {
+      // 保留 CONNECT 和 SUBSCRIBE 相关的日志
+      if (str.includes('CONNECT') || str.includes('SUBSCRIBE') || str.includes('MESSAGE')) {
+        console.log('[STOMP Debug]', str);
+      }
+      // 过滤掉心跳日志
       if (str.includes('PING') || str.includes('PONG')) return;
       console.log('[STOMP]', str);
     };
@@ -121,6 +143,13 @@ export function connectWebSocket(token, msgCallback, statCallback) {
       headers,
       frame => {
         console.log('[WebSocket] 连接成功!', frame);
+        console.log('[WebSocket] STOMP Session ID:', frame.headers['session-id']);
+        console.log('[WebSocket] STOMP User:', frame.headers['user-name']);
+        console.log('[WebSocket] STOMP 客户端状态:', {
+          connected: stompClient.connected,
+          subscriptions: stompClient.subscriptions ? Object.keys(stompClient.subscriptions) : []
+        });
+        
         isReconnecting = false;
         connectionStatus = 'connected';
         
@@ -129,62 +158,86 @@ export function connectWebSocket(token, msgCallback, statCallback) {
         
         try {
           console.log('[WebSocket] 开始订阅私聊消息...');
-          // 订阅私聊消息
-          stompClient.subscribe('/user/queue/private.message', message => {
-            console.log('[WebSocket] 收到私聊消息:', message);
+          const privateSubscription = stompClient.subscribe('/user/queue/private.message', async message => {
+            console.log('[WebSocket] 收到私聊消息 - 完整消息对象:', message);
+            console.log('[WebSocket] 消息头部信息:', message.headers);
+            console.log('[WebSocket] 消息目标地址:', message.headers.destination);
             try {
               const receivedMessage = JSON.parse(message.body);
-              messageCallback && messageCallback(receivedMessage, 'private');
+              console.log('[WebSocket] 解析后的私聊消息内容:', receivedMessage);
+              if (messageCallback) {
+                await Promise.resolve(messageCallback(receivedMessage, 'private'));
+              }
+              return false;
             } catch (error) {
               console.error('[WebSocket] 解析私聊消息失败:', error, message);
+              return false;
             }
           });
+          console.log('[WebSocket] 私聊消息订阅ID:', privateSubscription.id);
+          console.log('[WebSocket] 私聊消息订阅详情:', privateSubscription);
           
           console.log('[WebSocket] 开始订阅群聊消息...');
           // 订阅群聊消息
-          stompClient.subscribe('/user/queue/group.message', message => {
+          stompClient.subscribe('/user/queue/group.message', async message => {
             console.log('[WebSocket] 收到群聊消息:', message);
             try {
               const receivedMessage = JSON.parse(message.body);
-              messageCallback && messageCallback(receivedMessage, 'group');
+              if (messageCallback) {
+                await Promise.resolve(messageCallback(receivedMessage, 'group'));
+              }
+              return false; // 显式返回 false 表示不是异步操作
             } catch (error) {
               console.error('[WebSocket] 解析群聊消息失败:', error, message);
+              return false;
             }
           });
           
           console.log('[WebSocket] 开始订阅消息已读回执...');
           // 订阅消息已读回执
-          stompClient.subscribe('/user/queue/message.read', message => {
+          stompClient.subscribe('/user/queue/message.read', async message => {
             console.log('[WebSocket] 收到已读回执:', message);
             try {
               const readReceipt = JSON.parse(message.body);
-              messageCallback && messageCallback(readReceipt, 'read');
+              if (messageCallback) {
+                await Promise.resolve(messageCallback(readReceipt, 'read'));
+              }
+              return false;
             } catch (error) {
               console.error('[WebSocket] 解析已读回执失败:', error, message);
+              return false;
             }
           });
           
           console.log('[WebSocket] 开始订阅用户在线状态...');
           // 订阅用户在线状态
-          stompClient.subscribe('/topic/user.status', message => {
+          stompClient.subscribe('/topic/user.status', async message => {
             console.log('[WebSocket] 收到用户状态更新:', message);
             try {
               const statusUpdate = JSON.parse(message.body);
-              statusCallback && statusCallback(statusUpdate);
+              if (statusCallback) {
+                await Promise.resolve(statusCallback(statusUpdate));
+              }
+              return false;
             } catch (error) {
               console.error('[WebSocket] 解析用户状态更新失败:', error, message);
+              return false;
             }
           });
           
           console.log('[WebSocket] 开始订阅消息撤回...');
           // 订阅消息撤回
-          stompClient.subscribe('/user/queue/message.recall', message => {
+          stompClient.subscribe('/user/queue/message.recall', async message => {
             console.log('[WebSocket] 收到消息撤回:', message);
             try {
               const recallMessage = JSON.parse(message.body);
-              messageCallback && messageCallback(recallMessage, 'recall');
+              if (messageCallback) {
+                await Promise.resolve(messageCallback(recallMessage, 'recall'));
+              }
+              return false;
             } catch (error) {
               console.error('[WebSocket] 解析消息撤回失败:', error, message);
+              return false;
             }
           });
           
@@ -194,6 +247,10 @@ export function connectWebSocket(token, msgCallback, statCallback) {
           console.log('[WebSocket] 用户状态发送结果:', statusSent);
         } catch (subscribeError) {
           console.error('[WebSocket] 订阅消息主题失败:', subscribeError);
+          console.error('[WebSocket] 订阅时的STOMP客户端状态:', {
+            connected: stompClient.connected,
+            subscriptions: stompClient.subscriptions ? Object.keys(stompClient.subscriptions) : []
+          });
         }
         
         // 发送连接成功事件
@@ -203,6 +260,10 @@ export function connectWebSocket(token, msgCallback, statCallback) {
       },
       error => {
         console.error('[WebSocket] 连接失败!', error);
+        console.error('[WebSocket] 连接失败时的STOMP客户端状态:', {
+          connected: stompClient?.connected,
+          subscriptions: stompClient?.subscriptions ? Object.keys(stompClient.subscriptions) : []
+        });
         connectionStatus = 'disconnected';
         
         if (error.body && error.body.includes('Unauthorized')) {

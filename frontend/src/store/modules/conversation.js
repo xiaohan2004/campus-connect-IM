@@ -211,8 +211,26 @@ const actions = {
   },
 
   // 更新会话最后一条消息
-  updateLastMessage({ commit }, { conversationId, message }) {
-    commit('UPDATE_CONVERSATION_LAST_MESSAGE', { conversationId, message });
+  updateLastMessage({ commit, state }, { conversationId, message }) {
+    console.log('[Conversation Store] 更新会话最后一条消息:', { conversationId, message });
+    
+    // 查找会话
+    const conversation = state.conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+      console.error('[Conversation Store] 更新失败: 找不到会话', conversationId);
+      return;
+    }
+    
+    // 更新会话
+    const updatedConversation = {
+      ...conversation,
+      lastMessage: message.content,
+      timestamp: message.timestamp,
+      unreadCount: conversation.unreadCount + (message.unreadCount || 0) // 累加未读消息数
+    };
+    
+    // 更新会话列表
+    commit('UPDATE_CONVERSATION', updatedConversation);
   },
 
   // 设置当前会话
@@ -240,7 +258,7 @@ const actions = {
       title: conversation.title || (conversation.conversationType === 0 ? '私聊' : '群聊'),
       lastMessage: conversation.lastMessage || '',
       timestamp: conversation.lastMessageTime || new Date().toISOString(),
-      unreadCount: 1, // 新会话默认有一条未读消息
+      unreadCount: conversation.unreadCount || 0, // 使用传入的未读消息数，默认为0
       isTop: false,
       isMuted: false
     };

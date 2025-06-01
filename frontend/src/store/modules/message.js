@@ -533,7 +533,7 @@ const actions = {
   },
 
   // 处理WebSocket消息
-  handleWebSocketMessage({ commit, dispatch, rootState }, { message, type }) {
+  async handleWebSocketMessage({ commit, dispatch, rootState }, { message, type }) {
     console.log('[Message Store] 收到WebSocket消息:', { type, message });
     
     if (!message) {
@@ -589,30 +589,66 @@ const actions = {
       case 'private': {
         // 处理私聊消息
         console.log('[Message Store] 处理私聊消息:', message);
-        commit('ADD_MESSAGE', { 
-          conversationId: message.conversationId, 
-          message 
-        });
         
         // 检查是否需要创建或更新会话
         const privateConversation = rootState.conversation.conversations.find(c => c.id === message.conversationId);
         if (!privateConversation) {
-          console.log('[Message Store] 创建新的私聊会话:', message.conversationId);
-          // 创建新会话
-          dispatch('conversation/createConversation', {
-            id: message.conversationId,
-            conversationType: 0, // 私聊
-            targetId: message.senderId === rootState.user.userInfo?.id ? message.receiverId : message.senderId,
-            lastMessage: message.content,
-            lastMessageTime: message.timestamp
-          }, { root: true });
+          console.log('[Message Store] 尝试创建新的私聊会话:', message.conversationId);
+          try {
+            // 先检查是否为好友关系
+            const { data: isFriend } = await dispatch('friendship/checkFriendship', 
+              message.senderId === rootState.user.userInfo?.id ? message.receiverId : message.senderId, 
+              { root: true }
+            );
+            
+            if (!isFriend) {
+              console.warn('[Message Store] 非好友关系，不创建会话');
+              return;
+            }
+            
+            // 创建或获取私聊会话
+            const { data: conversation } = await dispatch('conversation/createPrivateConversation', {
+              otherUserId: message.senderId === rootState.user.userInfo?.id ? message.receiverId : message.senderId
+            }, { root: true });
+            
+            if (!conversation) {
+              console.error('[Message Store] 创建私聊会话失败');
+              return;
+            }
+            
+            // 添加消息到会话
+            commit('ADD_MESSAGE', { 
+              conversationId: message.conversationId, 
+              message 
+            });
+            
+            // 创建新会话
+            dispatch('conversation/createConversation', {
+              id: message.conversationId,
+              conversationType: 0, // 私聊
+              targetId: message.senderId === rootState.user.userInfo?.id ? message.receiverId : message.senderId,
+              lastMessage: message.content,
+              lastMessageTime: message.timestamp,
+              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
+            }, { root: true });
+          } catch (error) {
+            console.error('[Message Store] 创建私聊会话失败:', error);
+            return;
+          }
         } else {
+          // 添加消息到已存在的会话
+          commit('ADD_MESSAGE', { 
+            conversationId: message.conversationId, 
+            message 
+          });
+          
           // 更新会话的最后一条消息
           dispatch('conversation/updateLastMessage', {
             conversationId: message.conversationId,
             message: {
               content: message.content,
-              timestamp: message.timestamp
+              timestamp: message.timestamp,
+              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
             }
           }, { root: true });
         }
@@ -621,30 +657,63 @@ const actions = {
       case 'group': {
         // 处理群聊消息
         console.log('[Message Store] 处理群聊消息:', message);
-        commit('ADD_MESSAGE', { 
-          conversationId: message.conversationId, 
-          message 
-        });
         
         // 检查是否需要创建或更新会话
         const groupConversation = rootState.conversation.conversations.find(c => c.id === message.conversationId);
         if (!groupConversation) {
-          console.log('[Message Store] 创建新的群聊会话:', message.conversationId);
-          // 创建新会话
-          dispatch('conversation/createConversation', {
-            id: message.conversationId,
-            conversationType: 1, // 群聊
-            targetId: message.groupId || message.conversationId,
-            lastMessage: message.content,
-            lastMessageTime: message.timestamp
-          }, { root: true });
+          console.log('[Message Store] 尝试创建新的群聊会话:', message.conversationId);
+          try {
+            // 先检查是否在群组中
+            const { data: isInGroup } = await dispatch('group/checkUserInGroup', message.groupId, { root: true });
+            
+            if (!isInGroup) {
+              console.warn('[Message Store] 用户不在群组中，不创建会话');
+              return;
+            }
+            
+            // 创建或获取群聊会话
+            const { data: conversation } = await dispatch('conversation/createGroupConversation', {
+              groupId: message.groupId
+            }, { root: true });
+            
+            if (!conversation) {
+              console.error('[Message Store] 创建群聊会话失败');
+              return;
+            }
+            
+            // 添加消息到会话
+            commit('ADD_MESSAGE', { 
+              conversationId: message.conversationId, 
+              message 
+            });
+            
+            // 创建新会话
+            dispatch('conversation/createConversation', {
+              id: message.conversationId,
+              conversationType: 1, // 群聊
+              targetId: message.groupId || message.conversationId,
+              lastMessage: message.content,
+              lastMessageTime: message.timestamp,
+              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
+            }, { root: true });
+          } catch (error) {
+            console.error('[Message Store] 创建群聊会话失败:', error);
+            return;
+          }
         } else {
+          // 添加消息到已存在的会话
+          commit('ADD_MESSAGE', { 
+            conversationId: message.conversationId, 
+            message 
+          });
+          
           // 更新会话的最后一条消息
           dispatch('conversation/updateLastMessage', {
             conversationId: message.conversationId,
             message: {
               content: message.content,
-              timestamp: message.timestamp
+              timestamp: message.timestamp,
+              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
             }
           }, { root: true });
         }

@@ -9,9 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -19,6 +24,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+import java.security.Principal;
 import java.util.Map;
 
 /**
@@ -109,7 +115,47 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
-            // 这里可以添加消息处理拦截逻辑
+            @Override
+            public Message<?> preSend(Message<?> message, MessageChannel channel) {
+                StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                if (accessor != null) {
+                    if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                        // 获取握手时存储的用户手机号
+                        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+                        if (sessionAttributes != null && sessionAttributes.get(JwtConstant.PHONE_KEY) != null) {
+                            final String userPhone = sessionAttributes.get(JwtConstant.PHONE_KEY).toString();
+                            // 设置用户认证信息
+                            Principal user = new Principal() {
+                                @Override
+                                public String getName() {
+                                    return userPhone;
+                                }
+                            };
+                            accessor.setUser(user);
+                            logger.info("WebSocket CONNECT - 设置用户认证信息: {}", userPhone);
+                        } else {
+                            logger.error("WebSocket CONNECT - 未找到用户手机号");
+                        }
+                        logger.info("WebSocket CONNECT - SessionId: {}, User: {}, Attributes: {}", 
+                            accessor.getSessionId(),
+                            accessor.getUser() != null ? accessor.getUser().getName() : "unknown",
+                            accessor.getSessionAttributes());
+                    } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                        logger.info("WebSocket SUBSCRIBE - SessionId: {}, User: {}, Destination: {}, Attributes: {}", 
+                            accessor.getSessionId(),
+                            accessor.getUser() != null ? accessor.getUser().getName() : "unknown",
+                            accessor.getDestination(),
+                            accessor.getSessionAttributes());
+                    } else if (StompCommand.SEND.equals(accessor.getCommand())) {
+                        logger.info("WebSocket SEND - SessionId: {}, User: {}, Destination: {}, Attributes: {}", 
+                            accessor.getSessionId(),
+                            accessor.getUser() != null ? accessor.getUser().getName() : "unknown",
+                            accessor.getDestination(),
+                            accessor.getSessionAttributes());
+                    }
+                }
+                return message;
+            }
         });
     }
 }

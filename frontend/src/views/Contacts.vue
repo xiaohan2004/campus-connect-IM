@@ -49,10 +49,10 @@
               <img :src="friend.avatar || defaultAvatar" class="avatar" alt="头像" />
               <div class="friend-info">
                 <h3 class="friend-name">{{ friend.remark || friend.nickname }}</h3>
-                <p class="friend-status">
+                <!-- <p class="friend-status">
                   <span class="status-dot" :class="{ 'online': friend.status === 0 }"></span>
                   {{ friend.status === 0 ? '在线' : '离线' }}
-                </p>
+                </p> -->
               </div>
               <div class="friend-actions" @click.stop>
                 <el-dropdown trigger="click" @command="(command) => handleFriendAction(command, friend)">

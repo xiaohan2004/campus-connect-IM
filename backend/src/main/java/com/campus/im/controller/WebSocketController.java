@@ -3,10 +3,12 @@ package com.campus.im.controller;
 import com.campus.im.common.constant.JwtConstant;
 import com.campus.im.entity.Message;
 import com.campus.im.entity.GroupMember;
+import com.campus.im.entity.Conversation;
 import com.campus.im.service.MessageService;
 import com.campus.im.service.UserService;
 import com.campus.im.service.MentionService;
 import com.campus.im.service.ChatGroupService;
+import com.campus.im.service.ConversationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,9 @@ public class WebSocketController {
     @Autowired
     private ChatGroupService chatGroupService;
 
+    @Autowired
+    private ConversationService conversationService;
+
     /**
      * 处理私聊消息
      *
@@ -56,55 +61,64 @@ public class WebSocketController {
         try {
             // 从会话中获取发送者手机号
             String senderPhone = getPhoneFromSession(headerAccessor);
+            logger.info("处理私聊消息 - 发送者手机号: {}", senderPhone);
+            
             if (senderPhone == null) {
-                logger.warn("发送者手机号为空");
+                logger.error("发送者手机号为空，无法处理私聊消息");
                 return;
             }
 
             // 获取发送者ID
             Long senderId = userService.getUserByPhone(senderPhone).getId();
             if (senderId == null) {
-                logger.warn("发送者ID为空");
-                return;
-            }
-
-            // 检查必要的参数是否存在
-            if (payload.get("receiverId") == null) {
-                logger.warn("接收者ID为空");
-                return;
-            }
-            if (payload.get("contentType") == null) {
-                logger.warn("内容类型为空");
-                return;
-            }
-            if (payload.get("content") == null) {
-                logger.warn("消息内容为空");
+                logger.error("发送者ID为空");
                 return;
             }
 
             // 获取接收者ID
             Long receiverId = Long.valueOf(payload.get("receiverId").toString());
+            logger.info("私聊消息接收者ID: {}", receiverId);
+
+            // 检查必要的参数是否存在
+            if (payload.get("contentType") == null) {
+                logger.error("内容类型为空");
+                return;
+            }
+            if (payload.get("content") == null) {
+                logger.error("消息内容为空");
+                return;
+            }
+
             Integer contentType = Integer.valueOf(payload.get("contentType").toString());
             String content = payload.get("content").toString();
             String extra = payload.get("extra") != null ? payload.get("extra").toString() : null;
+            
+            // 获取接收者手机号
+            String receiverPhone = userService.getUserById(receiverId).getPhone();
+            logger.info("私聊消息接收者手机号: {}", receiverPhone);
 
             // 发送消息
             Message message = messageService.sendPrivateMessage(senderId, receiverId, contentType, content, extra);
             if (message != null) {
                 // 转换消息为前端期望的格式
                 Map<String, Object> convertedMessage = convertMessageToFrontendFormat(message);
-                
-                // 将消息发送给接收者
-                String receiverPhone = userService.getUserById(receiverId).getPhone();
-                logger.info("发送私聊消息给接收者: {}, 消息ID: {}", receiverPhone, message.getId());
+                logger.info("准备发送私聊消息 - 消息ID: {}, 发送者: {}, 接收者: {}", 
+                    message.getId(), senderPhone, receiverPhone);
+
+                // 发送给接收者
+                logger.info("开始发送私聊消息到接收者: {} 的队列 /user/{}/queue/private.message", 
+                    receiverPhone, receiverPhone);
                 messagingTemplate.convertAndSendToUser(receiverPhone, "/queue/private.message", convertedMessage);
                 
-                // 将消息发送给发送者（确认消息已发送）
-                logger.info("发送私聊消息给发送者: {}, 消息ID: {}", senderPhone, message.getId());
+                // 发送给发送者（确认消息已发送）
+                logger.info("开始发送私聊消息到发送者: {} 的队列 /user/{}/queue/private.message", 
+                    senderPhone, senderPhone);
                 messagingTemplate.convertAndSendToUser(senderPhone, "/queue/private.message", convertedMessage);
+                
+                logger.info("私聊消息发送完成 - 消息ID: {}", message.getId());
             }
         } catch (Exception e) {
-            logger.error("处理私聊消息失败", e);
+            logger.error("处理私聊消息时发生错误", e);
         }
     }
 
@@ -380,11 +394,27 @@ public class WebSocketController {
         
         // 设置会话ID
         if (message.getConversationType() == 0) {
-            // 私聊消息，会话ID为两个用户ID的组合
-            result.put("conversationId", createPrivateConversationId(message.getSenderId(), message.getReceiverId()));
+            // 私聊消息，从数据库获取或创建会话
+            Conversation conversation = conversationService.createOrGetPrivateConversation(
+                    message.getReceiverId(), message.getSenderId());
+            if (conversation != null) {
+                result.put("conversationId", conversation.getId());
+            } else {
+                logger.error("获取或创建私聊会话失败，senderId: {}, receiverId: {}", 
+                    message.getSenderId(), message.getReceiverId());
+                return null;
+            }
         } else {
-            // 群聊消息，会话ID为群组ID
-            result.put("conversationId", message.getReceiverId());
+            // 群聊消息，从数据库获取或创建会话
+            Conversation conversation = conversationService.createOrGetGroupConversation(
+                message.getSenderId(), message.getReceiverId());
+            if (conversation != null) {
+                result.put("conversationId", conversation.getId());
+            } else {
+                logger.error("获取或创建群聊会话失败，senderId: {}, groupId: {}", 
+                    message.getSenderId(), message.getReceiverId());
+                return null;
+            }
         }
         
         result.put("senderId", message.getSenderId());
@@ -398,21 +428,5 @@ public class WebSocketController {
         result.put("sender", message.getSenderId()); // 兼容前端代码
         
         return result;
-    }
-    
-    /**
-     * 创建私聊会话ID（确保两个用户之间的会话ID一致）
-     *
-     * @param userId1 用户1的ID
-     * @param userId2 用户2的ID
-     * @return 会话ID
-     */
-    private Long createPrivateConversationId(Long userId1, Long userId2) {
-        // 使用较小的ID作为前缀，确保两个用户之间的会话ID一致
-        Long smallerId = Math.min(userId1, userId2);
-        Long largerId = Math.max(userId1, userId2);
-        
-        // 简单的组合方式，可以根据实际需求调整
-        return Long.parseLong(smallerId + "" + largerId);
     }
 }

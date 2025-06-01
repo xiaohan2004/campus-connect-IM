@@ -38,7 +38,7 @@
               </h3>
               <span class="conversation-time">{{ formatTime(conversation.timestamp) }}</span>
             </div>
-            <p class="conversation-message">{{ conversation.lastMessage || '暂无消息' }}</p>
+            <!-- <p class="conversation-message">{{ conversation.lastMessage || '暂无消息' }}</p> -->
           </div>
         </div>
       </div>
