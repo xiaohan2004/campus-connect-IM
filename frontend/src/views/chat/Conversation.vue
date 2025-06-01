@@ -53,10 +53,10 @@
               received: message.sender !== currentUser.id && message.senderId !== currentUser.id
             }"
           >
+            <!-- 头像：自己发的在右边，对方发的在左边 -->
             <img
-              v-if="message.sender !== currentUser.id && message.senderId !== currentUser.id"
-              :src="getSenderAvatar(message.sender || message.senderId)"
               class="avatar message-avatar"
+              :src="getSenderAvatar(message.sender || message.senderId)"
               alt="头像"
             />
             <div class="message-content-wrapper">
@@ -84,12 +84,6 @@
                 ></i>
               </div>
             </div>
-            <img
-              v-if="message.sender === currentUser.id || message.senderId === currentUser.id"
-              :src="currentUser.avatar || defaultAvatar"
-              class="avatar message-avatar"
-              alt="头像"
-            />
           </div>
         </div>
       </template>
@@ -759,5 +753,55 @@ export default {
 .message-menu-dialog {
   border-radius: $border-radius-lg;
   overflow: hidden;
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: $spacing-2;
+  
+  &.sent {
+    flex-direction: row-reverse;
+    
+    .message-content {
+      background-color: $primary-color;
+      color: $white;
+      border-radius: 12px 2px 12px 12px;
+      margin-left: $spacing-2;
+    }
+    
+    .message-content-wrapper {
+      align-items: flex-end;
+      margin-right: $spacing-2;
+    }
+  }
+  
+  &.received {
+    .message-content {
+      background-color: $white;
+      border-radius: 2px 12px 12px 12px;
+      margin-right: $spacing-2;
+    }
+    
+    .message-content-wrapper {
+      align-items: flex-start;
+      margin-left: $spacing-2;
+    }
+  }
+}
+
+.message-content {
+  padding: $spacing-3;
+  max-width: 100%;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 </style> 
