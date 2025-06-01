@@ -37,14 +37,24 @@ const actions = {
         .then(response => {
           const { data } = response;
           commit('SET_TOKEN', data);
-          connectWebSocket(data, 
+          
+          // 尝试连接WebSocket
+          console.log('[User Store] 登录成功，尝试连接WebSocket');
+          const connected = connectWebSocket(data, 
             (message, type) => {
               dispatch('message/handleWebSocketMessage', { message, type }, { root: true });
             },
             (status) => {
-              dispatch('user/handleStatusUpdate', status, { root: true });
+              dispatch('handleStatusUpdate', status);
             }
           );
+          
+          if (connected) {
+            console.log('[User Store] WebSocket连接成功');
+          } else {
+            console.warn('[User Store] WebSocket连接失败，将在后台继续尝试重连');
+          }
+          
           resolve(response);
         })
         .catch(error => {
@@ -126,6 +136,29 @@ const actions = {
           console.error('getUserByPhone 错误:', error);
           reject(error);
         });
+    });
+  },
+
+  // 重新连接WebSocket
+  reconnectWebSocket({ state, dispatch }) {
+    return new Promise((resolve) => {
+      if (!state.token) {
+        console.warn('[User Store] 无法重连WebSocket: Token为空');
+        resolve(false);
+        return;
+      }
+      
+      console.log('[User Store] 尝试重新连接WebSocket');
+      const connected = connectWebSocket(state.token, 
+        (message, type) => {
+          dispatch('message/handleWebSocketMessage', { message, type }, { root: true });
+        },
+        (status) => {
+          dispatch('handleStatusUpdate', status);
+        }
+      );
+      
+      resolve(connected);
     });
   }
 };

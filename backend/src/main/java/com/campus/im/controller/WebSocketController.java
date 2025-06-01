@@ -2,9 +2,11 @@ package com.campus.im.controller;
 
 import com.campus.im.common.constant.JwtConstant;
 import com.campus.im.entity.Message;
+import com.campus.im.entity.GroupMember;
 import com.campus.im.service.MessageService;
 import com.campus.im.service.UserService;
 import com.campus.im.service.MentionService;
+import com.campus.im.service.ChatGroupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * WebSocket控制器
@@ -37,6 +40,9 @@ public class WebSocketController {
 
     @Autowired
     private MentionService mentionService;
+
+    @Autowired
+    private ChatGroupService chatGroupService;
 
     /**
      * 处理私聊消息
@@ -85,12 +91,17 @@ public class WebSocketController {
             // 发送消息
             Message message = messageService.sendPrivateMessage(senderId, receiverId, contentType, content, extra);
             if (message != null) {
+                // 转换消息为前端期望的格式
+                Map<String, Object> convertedMessage = convertMessageToFrontendFormat(message);
+                
                 // 将消息发送给接收者
                 String receiverPhone = userService.getUserById(receiverId).getPhone();
-                messagingTemplate.convertAndSendToUser(receiverPhone, "/queue/messages", message);
+                logger.info("发送私聊消息给接收者: {}, 消息ID: {}", receiverPhone, message.getId());
+                messagingTemplate.convertAndSendToUser(receiverPhone, "/queue/private.message", convertedMessage);
                 
                 // 将消息发送给发送者（确认消息已发送）
-                messagingTemplate.convertAndSendToUser(senderPhone, "/queue/messages", message);
+                logger.info("发送私聊消息给发送者: {}, 消息ID: {}", senderPhone, message.getId());
+                messagingTemplate.convertAndSendToUser(senderPhone, "/queue/private.message", convertedMessage);
             }
         } catch (Exception e) {
             logger.error("处理私聊消息失败", e);
@@ -148,8 +159,22 @@ public class WebSocketController {
             // 发送消息
             Message message = messageService.sendGroupMessage(senderId, groupId, contentType, content, extra);
             if (message != null) {
+                // 转换消息为前端期望的格式
+                Map<String, Object> convertedMessage = convertMessageToFrontendFormat(message);
+                
                 // 将消息发送到群组频道
-                messagingTemplate.convertAndSend("/topic/group." + groupId, message);
+                logger.info("发送群聊消息到群组: {}, 消息ID: {}", groupId, message.getId());
+                messagingTemplate.convertAndSend("/topic/group." + groupId, convertedMessage);
+                
+                // 同时发送到每个群成员的私有队列
+                // 获取群组成员列表
+                List<GroupMember> groupMembers = chatGroupService.getGroupMembers(groupId);
+                for (GroupMember member : groupMembers) {
+                    Long memberId = member.getUserId();
+                    String memberPhone = userService.getUserById(memberId).getPhone();
+                    logger.info("发送群聊消息给成员: {}, 消息ID: {}", memberPhone, message.getId());
+                    messagingTemplate.convertAndSendToUser(memberPhone, "/queue/group.message", convertedMessage);
+                }
                 
                 // 处理@提及
                 if (mentionedUserIds != null && !mentionedUserIds.isEmpty()) {
@@ -158,7 +183,7 @@ public class WebSocketController {
                     // 向被@的用户发送通知
                     for (Long mentionedUserId : mentionedUserIds) {
                         String mentionedUserPhone = userService.getUserById(mentionedUserId).getPhone();
-                        messagingTemplate.convertAndSendToUser(mentionedUserPhone, "/queue/mentions", message);
+                        messagingTemplate.convertAndSendToUser(mentionedUserPhone, "/queue/mentions", convertedMessage);
                     }
                 }
             }
@@ -339,5 +364,55 @@ public class WebSocketController {
             return (String) headerAccessor.getSessionAttributes().get(JwtConstant.PHONE_KEY);
         }
         return null;
+    }
+
+    /**
+     * 将消息转换为前端期望的格式
+     * 
+     * @param message 消息实体
+     * @return 转换后的消息
+     */
+    private Map<String, Object> convertMessageToFrontendFormat(Message message) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 字段名称映射
+        result.put("messageId", message.getId()); // id -> messageId
+        
+        // 设置会话ID
+        if (message.getConversationType() == 0) {
+            // 私聊消息，会话ID为两个用户ID的组合
+            result.put("conversationId", createPrivateConversationId(message.getSenderId(), message.getReceiverId()));
+        } else {
+            // 群聊消息，会话ID为群组ID
+            result.put("conversationId", message.getReceiverId());
+        }
+        
+        result.put("senderId", message.getSenderId());
+        result.put("receiverId", message.getReceiverId());
+        result.put("contentType", message.getContentType());
+        result.put("content", message.getContent());
+        result.put("extra", message.getExtra());
+        result.put("isRecalled", message.getIsRecalled() == 1);
+        result.put("isRead", message.getStatus() == 1);
+        result.put("timestamp", message.getSendTime().toString()); // sendTime -> timestamp
+        result.put("sender", message.getSenderId()); // 兼容前端代码
+        
+        return result;
+    }
+    
+    /**
+     * 创建私聊会话ID（确保两个用户之间的会话ID一致）
+     *
+     * @param userId1 用户1的ID
+     * @param userId2 用户2的ID
+     * @return 会话ID
+     */
+    private Long createPrivateConversationId(Long userId1, Long userId2) {
+        // 使用较小的ID作为前缀，确保两个用户之间的会话ID一致
+        Long smallerId = Math.min(userId1, userId2);
+        Long largerId = Math.max(userId1, userId2);
+        
+        // 简单的组合方式，可以根据实际需求调整
+        return Long.parseLong(smallerId + "" + largerId);
     }
 }

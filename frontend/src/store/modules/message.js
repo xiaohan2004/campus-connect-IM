@@ -533,44 +533,131 @@ const actions = {
   },
 
   // 处理WebSocket消息
-  handleWebSocketMessage({ commit, dispatch }, { message, type }) {
+  handleWebSocketMessage({ commit, dispatch, rootState }, { message, type }) {
     console.log('[Message Store] 收到WebSocket消息:', { type, message });
     
-    if (!message || !message.conversationId) {
-      console.error('[Message Store] 消息格式错误，缺少conversationId:', message);
+    if (!message) {
+      console.error('[Message Store] 消息为空，无法处理');
       return;
     }
     
+    // 确保消息有conversationId
+    if (!message.conversationId) {
+      console.warn('[Message Store] 消息缺少conversationId，尝试创建');
+      
+      // 尝试根据消息类型和内容创建conversationId
+      if (type === 'private' && message.senderId && message.receiverId) {
+        // 私聊消息，使用发送者和接收者ID创建conversationId
+        const currentUserId = rootState.user.userInfo?.id;
+        if (!currentUserId) {
+          console.error('[Message Store] 当前用户ID不存在，无法创建conversationId');
+          return;
+        }
+        
+        // 确定对方ID
+        const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
+        
+        // 创建conversationId（确保两个用户之间的会话ID一致）
+        const smallerId = Math.min(currentUserId, otherUserId);
+        const largerId = Math.max(currentUserId, otherUserId);
+        message.conversationId = Number(smallerId.toString() + largerId.toString());
+        
+        console.log('[Message Store] 为私聊消息创建conversationId:', message.conversationId);
+      } else if (type === 'group' && message.groupId) {
+        // 群聊消息，使用群组ID作为conversationId
+        message.conversationId = message.groupId;
+        console.log('[Message Store] 为群聊消息创建conversationId:', message.conversationId);
+      } else {
+        console.error('[Message Store] 无法为消息创建conversationId，缺少必要信息');
+        return;
+      }
+    }
+    
+    // 确保消息有messageId
+    if (!message.messageId && message.id) {
+      console.log('[Message Store] 消息使用id而不是messageId，进行转换');
+      message.messageId = message.id;
+    }
+    
+    // 确保消息有timestamp
+    if (!message.timestamp && message.sendTime) {
+      console.log('[Message Store] 消息使用sendTime而不是timestamp，进行转换');
+      message.timestamp = message.sendTime;
+    }
+    
     switch (type) {
-      case 'private':
+      case 'private': {
         // 处理私聊消息
         console.log('[Message Store] 处理私聊消息:', message);
         commit('ADD_MESSAGE', { 
           conversationId: message.conversationId, 
           message 
         });
-        // 更新会话的最后一条消息
-        dispatch('conversation/updateLastMessage', {
-          conversationId: message.conversationId,
-          message
-        }, { root: true });
+        
+        // 检查是否需要创建或更新会话
+        const privateConversation = rootState.conversation.conversations.find(c => c.id === message.conversationId);
+        if (!privateConversation) {
+          console.log('[Message Store] 创建新的私聊会话:', message.conversationId);
+          // 创建新会话
+          dispatch('conversation/createConversation', {
+            id: message.conversationId,
+            conversationType: 0, // 私聊
+            targetId: message.senderId === rootState.user.userInfo?.id ? message.receiverId : message.senderId,
+            lastMessage: message.content,
+            lastMessageTime: message.timestamp
+          }, { root: true });
+        } else {
+          // 更新会话的最后一条消息
+          dispatch('conversation/updateLastMessage', {
+            conversationId: message.conversationId,
+            message: {
+              content: message.content,
+              timestamp: message.timestamp
+            }
+          }, { root: true });
+        }
         break;
-      case 'group':
+      }
+      case 'group': {
         // 处理群聊消息
         console.log('[Message Store] 处理群聊消息:', message);
         commit('ADD_MESSAGE', { 
           conversationId: message.conversationId, 
           message 
         });
-        // 更新会话的最后一条消息
-        dispatch('conversation/updateLastMessage', {
-          conversationId: message.conversationId,
-          message
-        }, { root: true });
+        
+        // 检查是否需要创建或更新会话
+        const groupConversation = rootState.conversation.conversations.find(c => c.id === message.conversationId);
+        if (!groupConversation) {
+          console.log('[Message Store] 创建新的群聊会话:', message.conversationId);
+          // 创建新会话
+          dispatch('conversation/createConversation', {
+            id: message.conversationId,
+            conversationType: 1, // 群聊
+            targetId: message.groupId || message.conversationId,
+            lastMessage: message.content,
+            lastMessageTime: message.timestamp
+          }, { root: true });
+        } else {
+          // 更新会话的最后一条消息
+          dispatch('conversation/updateLastMessage', {
+            conversationId: message.conversationId,
+            message: {
+              content: message.content,
+              timestamp: message.timestamp
+            }
+          }, { root: true });
+        }
         break;
+      }
       case 'read':
         // 处理消息已读回执
         console.log('[Message Store] 处理消息已读回执:', message);
+        if (!message.messageId) {
+          console.error('[Message Store] 已读回执缺少messageId，无法处理');
+          return;
+        }
+        
         commit('UPDATE_MESSAGE', { 
           conversationId: message.conversationId, 
           messageId: message.messageId, 
@@ -580,6 +667,11 @@ const actions = {
       case 'recall':
         // 处理消息撤回
         console.log('[Message Store] 处理消息撤回:', message);
+        if (!message.messageId) {
+          console.error('[Message Store] 撤回消息缺少messageId，无法处理');
+          return;
+        }
+        
         commit('UPDATE_MESSAGE', { 
           conversationId: message.conversationId, 
           messageId: message.messageId, 
@@ -589,8 +681,26 @@ const actions = {
       default:
         console.log('[Message Store] 未知的WebSocket消息类型:', type, message);
     }
+    
+    // 播放提示音（如果不是自己发送的消息）
+    if (message.senderId !== rootState.user.userInfo?.id) {
+      playMessageSound();
+    }
   }
 };
+
+// 播放消息提示音
+function playMessageSound() {
+  try {
+    const audio = new Audio('/message.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(error => {
+      console.warn('[Message Store] 播放消息提示音失败:', error);
+    });
+  } catch (error) {
+    console.warn('[Message Store] 创建音频对象失败:', error);
+  }
+}
 
 export default {
   namespaced: true,

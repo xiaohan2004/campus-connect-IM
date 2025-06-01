@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
+import { isWebSocketConnected, connectWebSocket } from '@/api/websocket';
 
 const routes = [
   {
@@ -69,21 +70,39 @@ const router = createRouter({
 
 // 全局前置守卫
 router.beforeEach((to, from, next) => {
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  // 检查用户是否已登录
   const isLoggedIn = store.state.user.isLoggedIn;
-
-  // 如果需要登录但未登录，重定向到登录页
-  if (requiresAuth && !isLoggedIn) {
-    next('/login');
-  } 
-  // 如果已登录但访问登录页、注册页或找回密码页，重定向到聊天页
-  else if (isLoggedIn && (to.path === '/login' || to.path === '/register' || to.path === '/reset-password')) {
-    next('/chat');
-  } 
-  // 其他情况正常导航
-  else {
-    next();
+  
+  // 如果要访问登录页面且已登录，则重定向到首页
+  if (to.path === '/login' && isLoggedIn) {
+    next('/');
+    return;
   }
+  
+  // 如果要访问需要登录的页面但未登录，则重定向到登录页面
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next('/login');
+    return;
+  }
+  
+  // 如果已登录，检查WebSocket连接状态
+  if (isLoggedIn) {
+    const token = store.state.user.token;
+    // 如果WebSocket未连接，尝试重新连接
+    if (!isWebSocketConnected() && token) {
+      console.log('[Router] WebSocket未连接，尝试重新连接');
+      connectWebSocket(token, 
+        (message, type) => {
+          store.dispatch('message/handleWebSocketMessage', { message, type });
+        },
+        (status) => {
+          store.dispatch('user/handleStatusUpdate', status);
+        }
+      );
+    }
+  }
+  
+  next();
 });
 
 export default router; 

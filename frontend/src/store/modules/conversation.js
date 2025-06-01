@@ -218,6 +218,37 @@ const actions = {
   // 设置当前会话
   setCurrentConversation({ commit }, conversation) {
     commit('SET_CURRENT_CONVERSATION', conversation);
+    return conversation;
+  },
+  
+  // 创建新会话（用于WebSocket消息）
+  createConversation({ commit }, conversation) {
+    console.log('[Conversation Store] 创建新会话:', conversation);
+    
+    // 检查必要字段
+    if (!conversation.id) {
+      console.error('[Conversation Store] 创建会话失败: 缺少ID');
+      return null;
+    }
+    
+    // 创建会话对象
+    const newConversation = {
+      conversationId: conversation.id,
+      id: conversation.id,
+      conversationType: conversation.conversationType,
+      targetId: conversation.targetId,
+      title: conversation.title || (conversation.conversationType === 0 ? '私聊' : '群聊'),
+      lastMessage: conversation.lastMessage || '',
+      timestamp: conversation.lastMessageTime || new Date().toISOString(),
+      unreadCount: 1, // 新会话默认有一条未读消息
+      isTop: false,
+      isMuted: false
+    };
+    
+    // 添加到会话列表
+    commit('ADD_CONVERSATION', newConversation);
+    
+    return newConversation;
   }
 };
 

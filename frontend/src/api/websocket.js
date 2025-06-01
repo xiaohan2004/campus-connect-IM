@@ -4,32 +4,102 @@ import { ElMessage } from 'element-plus';
 
 let stompClient = null;
 let socket = null;
+let reconnectTimer = null;
+let isReconnecting = false;
+let messageCallback = null;
+let statusCallback = null;
+let authToken = null;
+
 // WebSocket URL，确保与后端配置匹配
 const websocketUrl = 'http://localhost:8080/ws';
 
+// 连接状态变量
+let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'connected'
+let connectionCheckInterval = null;
+
+// 检查连接状态并在必要时重连
+function startConnectionCheck() {
+  // 清除之前的检查
+  if (connectionCheckInterval) {
+    clearInterval(connectionCheckInterval);
+  }
+  
+  // 每30秒检查一次连接状态
+  connectionCheckInterval = setInterval(() => {
+    console.log('[WebSocket] 定期检查连接状态:', connectionStatus);
+    
+    if (connectionStatus === 'connected' && stompClient && !stompClient.connected) {
+      // 连接状态不一致，可能连接已断开但状态未更新
+      console.warn('[WebSocket] 检测到连接状态不一致，更新为断开状态');
+      connectionStatus = 'disconnected';
+      
+      // 触发连接关闭事件
+      window.dispatchEvent(new CustomEvent('websocket-closed'));
+    }
+    
+    // 如果有token但未连接，尝试重连
+    if (authToken && connectionStatus === 'disconnected' && !isReconnecting) {
+      console.log('[WebSocket] 检测到未连接状态，尝试自动重连');
+      connectWebSocket(authToken, messageCallback, statusCallback);
+    }
+  }, 30000);
+}
+
 // 连接WebSocket，token放URL参数
-export function connectWebSocket(token, messageCallback, statusCallback) {
+export function connectWebSocket(token, msgCallback, statCallback) {
   console.log('[WebSocket] 开始连接...', {
     url: websocketUrl,
     time: new Date().toISOString(),
-    tokenValid: !!token && token.length > 10
+    tokenValid: !!token && token.length > 10,
+    currentStatus: connectionStatus
   });
+
+  // 保存回调函数和token，用于重连
+  messageCallback = msgCallback;
+  statusCallback = statCallback;
+  authToken = token;
+  
+  // 设置连接状态为正在连接
+  connectionStatus = 'connecting';
 
   if (stompClient && stompClient.connected) {
     console.log('[WebSocket] 已连接，跳过连接过程');
-    return;
+    connectionStatus = 'connected';
+    return true; // 返回连接状态
+  }
+  
+  // 如果正在重连，不要重复连接
+  if (isReconnecting) {
+    console.log('[WebSocket] 正在重连中，跳过连接过程');
+    return false; // 返回连接状态
   }
 
   if (!token || token.trim() === '') {
     console.error('[WebSocket] 连接失败: Token为空');
     ElMessage.error('WebSocket连接失败: 认证Token为空');
-    return;
+    connectionStatus = 'disconnected';
+    return false; // 返回连接状态
   }
 
   try {
+    // 清除之前的重连定时器
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
     // 带token的URL，放查询参数里
     const urlWithToken = `${websocketUrl}?token=${encodeURIComponent(token)}`;
     console.log('[WebSocket] 使用带token的SockJS URL:', urlWithToken);
+
+    // 关闭之前的连接
+    if (socket) {
+      try {
+        socket.close();
+      } catch (e) {
+        console.warn('[WebSocket] 关闭之前的连接失败:', e);
+      }
+    }
 
     socket = new SockJS(urlWithToken);
 
@@ -51,6 +121,11 @@ export function connectWebSocket(token, messageCallback, statusCallback) {
       headers,
       frame => {
         console.log('[WebSocket] 连接成功!', frame);
+        isReconnecting = false;
+        connectionStatus = 'connected';
+        
+        // 启动连接状态检查
+        startConnectionCheck();
         
         try {
           console.log('[WebSocket] 开始订阅私聊消息...');
@@ -120,12 +195,22 @@ export function connectWebSocket(token, messageCallback, statusCallback) {
         } catch (subscribeError) {
           console.error('[WebSocket] 订阅消息主题失败:', subscribeError);
         }
+        
+        // 发送连接成功事件
+        window.dispatchEvent(new CustomEvent('websocket-connected'));
+        
+        return true; // 连接成功
       },
       error => {
         console.error('[WebSocket] 连接失败!', error);
+        connectionStatus = 'disconnected';
+        
         if (error.body && error.body.includes('Unauthorized')) {
           console.error('[WebSocket] 认证失败，请检查token是否有效');
           ElMessage.error('WebSocket连接失败: 认证失败，请重新登录');
+          
+          // 如果是认证问题，可能需要重新登录
+          window.dispatchEvent(new CustomEvent('websocket-auth-error'));
         } else if (error.body && error.body.includes('timeout')) {
           console.error('[WebSocket] 连接超时，服务器可能未响应');
           ElMessage.error('WebSocket连接超时，请检查网络连接或服务器状态');
@@ -135,11 +220,57 @@ export function connectWebSocket(token, messageCallback, statusCallback) {
         
         // 尝试网络诊断
         checkServerAvailability();
+        
+        // 设置重连标志
+        isReconnecting = true;
+        
+        // 延迟5秒后重连
+        reconnectTimer = setTimeout(() => {
+          console.log('[WebSocket] 尝试重新连接...');
+          connectWebSocket(authToken, messageCallback, statusCallback);
+        }, 5000);
+        
+        return false; // 连接失败
       }
     );
+    
+    // 添加连接关闭事件处理
+    socket.onclose = function() {
+      console.log('[WebSocket] 连接已关闭');
+      connectionStatus = 'disconnected';
+      
+      // 发送连接关闭事件
+      window.dispatchEvent(new CustomEvent('websocket-closed'));
+      
+      // 如果不是主动断开连接，尝试重连
+      if (authToken && !isReconnecting) {
+        console.log('[WebSocket] 连接意外关闭，5秒后尝试重连');
+        isReconnecting = true;
+        
+        reconnectTimer = setTimeout(() => {
+          console.log('[WebSocket] 尝试重新连接...');
+          connectWebSocket(authToken, messageCallback, statusCallback);
+        }, 5000);
+      }
+    };
+    
+    return true; // 初始化成功
   } catch (error) {
     console.error('[WebSocket] 初始化连接时发生异常:', error);
     ElMessage.error(`WebSocket初始化失败: ${error.message}`);
+    
+    connectionStatus = 'disconnected';
+    
+    // 设置重连标志
+    isReconnecting = true;
+    
+    // 延迟5秒后重连
+    reconnectTimer = setTimeout(() => {
+      console.log('[WebSocket] 尝试重新连接...');
+      connectWebSocket(authToken, messageCallback, statusCallback);
+    }, 5000);
+    
+    return false; // 初始化失败
   }
 }
 
@@ -165,6 +296,25 @@ function checkServerAvailability() {
 // 断开WebSocket连接
 export function disconnectWebSocket() {
   console.log('[WebSocket] 开始断开连接...');
+  
+  // 清除重连定时器
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  
+  // 清除连接检查定时器
+  if (connectionCheckInterval) {
+    clearInterval(connectionCheckInterval);
+    connectionCheckInterval = null;
+  }
+  
+  // 清除回调和token
+  messageCallback = null;
+  statusCallback = null;
+  authToken = null;
+  isReconnecting = false;
+  connectionStatus = 'disconnected';
   
   if (stompClient) {
     try {
@@ -350,6 +500,11 @@ export function sendMessageRecall(messageId, conversationType, targetId) {
 // 检查WebSocket连接状态
 export function isWebSocketConnected() {
   const connected = stompClient && stompClient.connected;
-  console.log('[WebSocket] 检查连接状态:', connected ? '已连接' : '未连接');
+  console.log('[WebSocket] 检查连接状态:', connected ? '已连接' : '未连接', '内部状态:', connectionStatus);
   return connected;
+}
+
+// 获取连接状态
+export function getConnectionStatus() {
+  return connectionStatus;
 } 

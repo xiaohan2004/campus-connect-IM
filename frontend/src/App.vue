@@ -5,17 +5,57 @@
 </template>
 
 <script>
-import { onMounted } from 'vue';
+import { onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
+import { connectWebSocket, isWebSocketConnected } from '@/api/websocket';
+import { ElMessage } from 'element-plus';
 
 export default {
   name: 'App',
   setup() {
     const store = useStore();
 
+    // WebSocket连接状态监听
+    const handleWebSocketConnected = () => {
+      console.log('[App] WebSocket连接成功事件');
+    };
+
+    const handleWebSocketClosed = () => {
+      console.log('[App] WebSocket连接关闭事件');
+      // 可以在这里显示连接断开的提示
+    };
+
+    const handleWebSocketAuthError = () => {
+      console.log('[App] WebSocket认证错误事件');
+      // 如果是认证问题，可能需要重新登录
+      ElMessage.error('WebSocket认证失败，请重新登录');
+      // 可以选择跳转到登录页面
+      // router.push('/login');
+    };
+
     onMounted(() => {
+      // 添加WebSocket事件监听
+      window.addEventListener('websocket-connected', handleWebSocketConnected);
+      window.addEventListener('websocket-closed', handleWebSocketClosed);
+      window.addEventListener('websocket-auth-error', handleWebSocketAuthError);
+
       // 如果已登录，获取用户信息
       if (store.state.user.isLoggedIn) {
+        // 初始化WebSocket连接
+        const token = store.state.user.token;
+        console.log('[App] 页面加载，尝试初始化WebSocket连接，token有效性:', !!token);
+        
+        if (token) {
+          // 检查WebSocket是否已连接
+          if (!isWebSocketConnected()) {
+            console.log('[App] WebSocket未连接，尝试重新连接');
+            store.dispatch('user/reconnectWebSocket');
+          } else {
+            console.log('[App] WebSocket已连接，无需重新连接');
+          }
+        }
+        
+        // 获取用户信息
         store.dispatch('user/getUserInfo');
         // 获取会话列表
         store.dispatch('conversation/getConversations');
@@ -50,6 +90,13 @@ export default {
             // 不抛出错误，让应用继续运行
           });
       }
+    });
+
+    onBeforeUnmount(() => {
+      // 移除WebSocket事件监听
+      window.removeEventListener('websocket-connected', handleWebSocketConnected);
+      window.removeEventListener('websocket-closed', handleWebSocketClosed);
+      window.removeEventListener('websocket-auth-error', handleWebSocketAuthError);
     });
 
     return {};
