@@ -93,4 +93,9 @@ public class UserServiceImpl implements UserService {
         // 使用用户ID更新在线状态
         return updateUserOnlineStatus(user.getId());
     }
+
+    @Override
+    public List<User> getAllUser() {
+        return userMapper.selectAll();
+    }
 } 

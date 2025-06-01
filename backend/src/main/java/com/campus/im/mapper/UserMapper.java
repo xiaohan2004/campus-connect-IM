@@ -59,4 +59,11 @@ public interface UserMapper {
      * @return 影响行数
      */
     int updateLastActiveTime(@Param("id") Long id);
+
+    /**
+     * 获取所有用户
+     *
+     * @return 所有用户列表
+     */
+    List<User> selectAll();
 } 

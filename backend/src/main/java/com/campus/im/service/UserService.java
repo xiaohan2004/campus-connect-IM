@@ -63,4 +63,11 @@ public interface UserService {
      * @return 是否成功
      */
     boolean updateUserOnlineStatus(String phone);
+
+    /**
+     * 获取所有用户
+     *
+     * @return 所有用户列表
+     */
+    List<User> getAllUser();
 } 

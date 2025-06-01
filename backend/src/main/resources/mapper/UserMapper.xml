@@ -68,4 +68,9 @@
         WHERE id = #{id}
     </update>
     
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM user
+    </select>
 </mapper> 

@@ -658,65 +658,42 @@ const actions = {
         // 处理群聊消息
         console.log('[Message Store] 处理群聊消息:', message);
         
-        // 检查是否需要创建或更新会话
-        const groupConversation = rootState.conversation.conversations.find(c => c.id === message.conversationId);
-        if (!groupConversation) {
-          console.log('[Message Store] 尝试创建新的群聊会话:', message.conversationId);
-          try {
-            // 先检查是否在群组中
-            const { data: isInGroup } = await dispatch('group/checkUserInGroup', message.groupId, { root: true });
-            
-            if (!isInGroup) {
-              console.warn('[Message Store] 用户不在群组中，不创建会话');
-              return;
-            }
-            
-            // 创建或获取群聊会话
-            const { data: conversation } = await dispatch('conversation/createGroupConversation', {
-              groupId: message.groupId
-            }, { root: true });
-            
-            if (!conversation) {
-              console.error('[Message Store] 创建群聊会话失败');
-              return;
-            }
-            
-            // 添加消息到会话
-            commit('ADD_MESSAGE', { 
-              conversationId: message.conversationId, 
-              message 
-            });
-            
-            // 创建新会话
-            dispatch('conversation/createConversation', {
-              id: message.conversationId,
-              conversationType: 1, // 群聊
-              targetId: message.groupId || message.conversationId,
-              lastMessage: message.content,
-              lastMessageTime: message.timestamp,
-              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
-            }, { root: true });
-          } catch (error) {
-            console.error('[Message Store] 创建群聊会话失败:', error);
-            return;
-          }
-        } else {
-          // 添加消息到已存在的会话
+        // 如果是自己发送的消息，不需要再添加一遍
+        if (message.senderId === rootState.user.userInfo?.id) {
+          console.log('[Message Store] 跳过添加自己发送的消息:', message);
+          return;
+        }
+        
+        // 获取所有群聊会话
+        const groupConversations = rootState.conversation.conversations.filter(c => c.conversationType === 1);
+        
+        if (groupConversations.length === 0) {
+          console.warn('[Message Store] 没有找到任何群聊会话');
+          return;
+        }
+        
+        // 遍历所有群聊会话，添加消息
+        groupConversations.forEach(conversation => {
+          // 添加消息到会话
           commit('ADD_MESSAGE', { 
-            conversationId: message.conversationId, 
-            message 
+            conversationId: conversation.id, 
+            message: {
+              ...message,
+              conversationId: conversation.id // 更新消息的会话ID以匹配当前会话
+            }
           });
           
           // 更新会话的最后一条消息
           dispatch('conversation/updateLastMessage', {
-            conversationId: message.conversationId,
+            conversationId: conversation.id,
             message: {
               content: message.content,
               timestamp: message.timestamp,
-              unreadCount: message.senderId === rootState.user.userInfo?.id ? 0 : 1 // 如果是自己发送的消息，未读数为0
+              unreadCount: 1 // 非自己发送的消息，未读数为1
             }
           }, { root: true });
-        }
+        });
+        
         break;
       }
       case 'read':

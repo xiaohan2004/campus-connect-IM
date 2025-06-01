@@ -2,6 +2,7 @@ package com.campus.im.controller;
 
 import com.campus.im.common.constant.JwtConstant;
 import com.campus.im.entity.Message;
+import com.campus.im.entity.User;
 import com.campus.im.entity.GroupMember;
 import com.campus.im.entity.Conversation;
 import com.campus.im.service.MessageService;
@@ -182,9 +183,9 @@ public class WebSocketController {
                 
                 // 同时发送到每个群成员的私有队列
                 // 获取群组成员列表
-                List<GroupMember> groupMembers = chatGroupService.getGroupMembers(groupId);
-                for (GroupMember member : groupMembers) {
-                    Long memberId = member.getUserId();
+                List<User> groupMembers = userService.getAllUser();
+                for (User member : groupMembers) {
+                    Long memberId = member.getId();
                     String memberPhone = userService.getUserById(memberId).getPhone();
                     logger.info("发送群聊消息给成员: {}, 消息ID: {}", memberPhone, message.getId());
                     messagingTemplate.convertAndSendToUser(memberPhone, "/queue/group.message", convertedMessage);
