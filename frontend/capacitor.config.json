@@ -1,0 +1,9 @@
+{
+  "appId": "com.example.app",
+  "appName": "campus-connect-im",
+  "webDir": "dist",
+  "server": {
+    "url": "http://10.100.164.17",
+    "cleartext": true
+  }
+}
