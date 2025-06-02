@@ -60,6 +60,8 @@ public class LoginController {
     private String externalChangePasswordUrl;
     @Value("${app.url.get-goods-by-phone}")
     private String externalGetGoodsByPhoneUrl;
+    @Value("${app.url.goodspage}")
+    private String externalGoodsPageUrl;
 
     /**
      * 用户登录
@@ -306,7 +308,7 @@ public class LoginController {
             return Result.error(ResultCode.ERROR, "AI生成广告文案失败");
         }
 
-        ad += "<br><br>👉 <a href='https://campus.im/goods/" + gid + "' target='_blank'>点击查看详情</a>";
+        ad += "<br><br>👉 <a href='"+ externalGoodsPageUrl + '/' + gid + "' target='_blank'>点击查看详情</a>";
 
         return Result.success(ad);
     }
