@@ -225,10 +225,23 @@ export default {
       if (conversation.value.conversationType === 1) {
         // 群聊 - 尝试从群组列表中获取更详细的信息
         const group = groups.value.find(g => Number(g.id) === Number(conversation.value.targetId));
+        console.log('[Conversation] 群组信息:', {
+          group,
+          groupName: group?.name,
+          targetId: conversation.value.targetId,
+          groups: groups.value
+        });
         if (group) {
-          return group.name || conversation.value.title || '群聊';
+          // 明确检查 group.name 是否为 undefined
+          const finalName = (group.name === undefined || group.name === null || group.name === '') 
+            ? '相亲相爱一家人' 
+            : group.name;
+          console.log('[Conversation] 最终群聊名称:', finalName);
+          return finalName;
         }
-        return conversation.value.title || '群聊';
+        // 如果没有找到群组信息，返回默认名称
+        console.log('[Conversation] 未找到群组信息，使用默认名称');
+        return '相亲相爱一家人';
       } else {
         // 私聊 - 尝试从好友列表中获取更详细的信息
         const friend = friends.value.find(f => Number(f.id) === Number(conversation.value.targetId));

@@ -256,10 +256,14 @@ export default {
         console.log('匹配到的群组:', group);
         
         if (group) {
-          return `${group.name} (群聊)`;
+          // 检查群组名称是否为undefined或空
+          const groupName = (group.name === undefined || group.name === null || group.name === '') 
+            ? '相亲相爱一家人' 
+            : group.name;
+          return `${groupName} (群聊)`;
         }
-        // 如果找不到对应的群组信息，则使用会话中的标题
-        return `${conversation.title} (群聊)`;
+        // 如果找不到对应的群组信息，使用默认名称
+        return `相亲相爱一家人 (群聊)`;
       } else {
         // 私聊 - 尝试从好友列表中获取更详细的信息
         const friend = friends.value.find(f => Number(f.id) === Number(conversation.targetId));
