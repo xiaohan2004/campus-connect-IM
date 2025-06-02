@@ -4,7 +4,7 @@ import router from '@/router';
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://localhost:8080', // 统一前缀
+  baseURL: process.env.VUE_APP_API_BASE_URL, // 使用环境变量中的API基础地址
   timeout: 20000 // 请求超时时间
 });
 

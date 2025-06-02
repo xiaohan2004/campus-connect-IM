@@ -10,8 +10,8 @@ let messageCallback = null;
 let statusCallback = null;
 let authToken = null;
 
-// WebSocket URL，确保与后端配置匹配
-const websocketUrl = 'http://localhost:8080/ws';
+// WebSocket URL，使用环境变量中的配置
+const websocketUrl = process.env.VUE_APP_WEBSOCKET_URL;
 
 // 连接状态变量
 let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'connected'
