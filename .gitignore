@@ -4,3 +4,4 @@ logs
 target
 application-*.yml
 node_modules
+dist
