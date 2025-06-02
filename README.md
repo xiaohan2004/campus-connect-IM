@@ -50,7 +50,7 @@ Campus Connect IM 是一个校园应用的附属即时通讯系统，作为校�
 本系统作为校园信息化平台的附属应用，需要：
 1. 与主系统的用户中心集成，用于用户认证
 2. 访问主系统的用户基础信息
-3. 使用主系统的统一认证接口
+3. 使用主系统提供的其他接口
 
 ## 🛠️ 技术栈
 
@@ -94,7 +94,7 @@ Campus Connect IM 是一个校园应用的附属即时通讯系统，作为校�
 - Docker & Docker Compose
 - Maven 3.6+
 
-### 使用Docker部署
+### 使用Docker部署前后端
 1. 克隆项目
 ```bash
 git clone https://github.com/xiaohan2004/campus-connect-IM
@@ -130,6 +130,9 @@ docker-compose up -d
 5. 访问服务
 - 前端：http://localhost
 - 后端：http://localhost:8080
+
+### 编译手机APP
+使用 Android Studio 打开 .\frontend\android 文件夹，编译并安装APP即可使用。
 
 ## 📚 API 文档
 
