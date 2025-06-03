@@ -4,12 +4,11 @@ Campus Connect IM 是一个校园应用的附属即时通讯系统，作为校�
 
 ## 项目截图
 
-![image](https://github.com/user-attachments/assets/1120b148-d3b0-4529-a0d3-ef9b37b6b303)
+![项目截图1.png](assets/%E9%A1%B9%E7%9B%AE%E6%88%AA%E5%9B%BE1.png)
 
-![image](https://github.com/user-attachments/assets/4bf50617-2380-4af4-b97f-54dd44ca3d7f)
+![项目截图2.png](assets/%E9%A1%B9%E7%9B%AE%E6%88%AA%E5%9B%BE2.png)
 
-![image](https://github.com/user-attachments/assets/7b650e94-7a35-4bfc-b6bf-c5d25e8fb222)
-
+![项目截图3.png](assets/%E9%A1%B9%E7%9B%AE%E6%88%AA%E5%9B%BE3.png)
 
 ## 🌟 功能特性
 
