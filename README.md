@@ -63,7 +63,6 @@ Campus Connect IM 是一个校园应用的附属即时通讯系统，作为校�
 - Druid 连接池
 - RestTemplate
 - Lombok
-- Hutool 工具包
 - FastJson2
 - 阿里云邮件服务
 
